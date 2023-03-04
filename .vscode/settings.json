@@ -9,7 +9,11 @@
         "editor.tabSize": 4,
     },
     "files.associations": {
-        "Makefile.*": "makefile"
+        "Makefile.*": "makefile",
+        "time.h": "c",
+        "stdio.h": "c",
+        "string": "cpp",
+        "tensor": "c"
     },
     "C_Cpp.dimInactiveRegions": false,
     "esbonio.sphinx.confDir": "",
