@@ -237,6 +237,7 @@ def main():
     optFlowTester = OptFlowTester()
     optFlowTester.input = fn
     optFlowTester.setAlg(algIdx)
+    cv.setNumThreads(1)
 
     if mode=="interact":
         optFlowTester.run()
