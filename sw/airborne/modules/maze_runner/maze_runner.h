@@ -41,12 +41,6 @@
 #ifndef MAZE_RUNNER_VISUAL_DETECTION_ID
 #define MAZE_RUNNER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
-#define PRINT(string, ...) fprintf(stderr, "[maze_runner->%s()] " string, __FUNCTION__, ##__VA_ARGS__)
-#if MAZE_RUNNER_VERBOSE
-#define VERBOSE_PRINT PRINT
-#else
-#define VERBOSE_PRINT(...)
-#endif
 
 enum navigation_state_t
 {
@@ -57,6 +51,7 @@ enum navigation_state_t
 };
 
 extern float oa_color_count_frac;
+extern float heading_increment;
 
 extern void maze_runner_init(void);
 extern void maze_runner_loop(void);

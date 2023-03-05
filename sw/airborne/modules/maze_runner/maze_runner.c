@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/** @file "modules/maze_runner/maze_runner.h"
+/** @file "modules/maze_runner/maze_runner.c"
  * @author Ryan Y. Liu <yueqianliu@outlook.com>
  * A module for AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
  * This module aims to provide a collision free navigation strategy for the Bebop in the Cyberzoo.
@@ -27,6 +27,13 @@
 
 #include "modules/maze_runner/maze_runner.h"
 #include "generated/flight_plan.h"
+
+#define PRINT(string, ...) fprintf(stderr, "[maze_runner->%s()] " string, __FUNCTION__, ##__VA_ARGS__)
+#if MAZE_RUNNER_VERBOSE
+#define VERBOSE_PRINT PRINT
+#else
+#define VERBOSE_PRINT(...)
+#endif
 
 float oa_color_count_frac = 0.18f;
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -57,7 +64,7 @@ void maze_runner_init(void)
 
 void maze_runner_loop(void)
 {
-  // freq = 5.0 Hz
+  // loop frequency set in the module xml
   // only evaluate our state machine if we are flying
   if (!autopilot_in_flight())
   {
@@ -67,7 +74,7 @@ void maze_runner_loop(void)
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  // VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
 
   // update our safe confidence using color threshold
   if (color_count < color_count_threshold)
