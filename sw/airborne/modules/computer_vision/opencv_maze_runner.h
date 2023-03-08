@@ -5,8 +5,11 @@
 extern "C" {
 #endif
 
-// declare wrapper functions here
-// do not include any opencv elements here
+#include "modules/computer_vision/cv.h"
+#include "modules/computer_vision/lib/vision/image.h"
+
+void opencv_frontend_run(struct image_t *input);
+
 
 #ifdef __cplusplus
 }

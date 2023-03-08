@@ -39,6 +39,7 @@
   <makefile target="nps">
     <file name="cv_maze_runner.c"/>
     <file name="opencv_maze_runner.cpp"/>
+    <!-- <file name="opencv_image_functions.cpp"/> -->
 
     <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install_pc/include"/>
     <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
@@ -60,5 +61,11 @@
     <flag name="LDFLAGS" value="lfreetype"/>
     <flag name="LDFLAGS" value="lharfbuzz"/>
     <flag name="LDFLAGS" value="lrt"/>
+    <flag name="LDFLAGS" value="lgobject-2.0"/>
+    <flag name="LDFLAGS" value="lcairo"/>
+    <flag name="LDFLAGS" value="lgdk_pixbuf-2.0"/>
+    <flag name="LDFLAGS" value="lgtk-3"/>
+    <flag name="LDFLAGS" value="lgdk-3"/>
+
   </makefile>
 </module>

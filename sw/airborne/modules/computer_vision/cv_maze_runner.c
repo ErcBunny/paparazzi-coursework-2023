@@ -7,16 +7,13 @@
 #define VERBOSE_PRINT(...)
 #endif
 
-
 static pthread_mutex_t mutex;
+static bool first_cb = true;
 
 struct image_t *video_cb(struct image_t *img, uint8_t camera_id)
 {
-  // camera_id is set by user
-  // using front or down cam is set in cv_maze_runner.xml and bebop_course_maze_runner.xml
   
-  
-  
+  opencv_frontend_run(img);
   return NULL;
 }
 
