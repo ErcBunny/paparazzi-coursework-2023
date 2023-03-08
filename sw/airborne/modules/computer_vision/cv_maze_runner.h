@@ -11,6 +11,25 @@
 
 #define CV_MAZE_RUNNER_VERBOSE TRUE
 
+#define SIM TRUE
+
+#if SIM
+#define LM_MIN 41
+#define LM_MAX 183
+#define CB_MIN 53
+#define CB_MAX 121
+#define CR_MIN 134
+#define CR_MAX 249
+#else
+#define LM_MIN 30
+#define LM_MAX 190
+#define CB_MIN 70
+#define CB_MAX 130
+#define CR_MIN 150
+#define CR_MAX 190
+#endif
+
+
 extern void cv_maze_runner_init(void);
 extern void cv_maze_runner_loop(void);
 
