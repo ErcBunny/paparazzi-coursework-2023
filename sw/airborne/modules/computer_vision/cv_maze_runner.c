@@ -32,7 +32,10 @@ struct image_t *video_cb(struct image_t *img, uint8_t camera_id)
     &color_count
   );
 
-
+  AbiSendMsgVISUAL_DETECTION(
+    COLOR_OBJECT_DETECTION1_ID,
+    0, 0, 0, 0, color_count, 0
+  );
   
 #if SIM
   gettimeofday(&end_time, NULL);
