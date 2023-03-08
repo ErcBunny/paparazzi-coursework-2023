@@ -6,6 +6,7 @@
 #include "modules/core/abi.h"
 #include "modules/computer_vision/cv.h"
 #include "pthread.h"
+#include <stdio.h>
 
 #include "modules/computer_vision/opencv_maze_runner.h"
 
