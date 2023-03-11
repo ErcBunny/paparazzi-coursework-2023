@@ -4,138 +4,190 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/optflow.hpp>
-#include <opencv2/highgui.hpp>
 
+#ifdef TARGET_IS_NPS
+#include <iostream>
+#include <opencv2/highgui.hpp>
+#endif
 
 using namespace std;
 using namespace cv;
 using namespace optflow;
 
+struct optflow_t
+{
+    Ptr<DenseOpticalFlow> algorithm;
+    int h;
+    int w;
+    Rect roi;
+    Mat dist_to_centre;
+    Mat gray[2];
+    Mat flow_raw;
+    Mat flow_uv[2];
+    Mat flow_mag;
+    Mat flow_ang;
+    Mat flow_eof;
+    float lmag;
+    float rmag;
+    float leof;
+    float reof;
+};
+
+/**
+ * declare helper functions, these are functions that help with header functions
+ * but since they contain opencv elements, they are declared here
+ */
 Mat rotate(Mat src);
-Mat rotate(Mat src)
+Mat preprocess(struct image_t *src);
+
+/**
+ * global variables, only shared within this file
+ */
+static struct optflow_t opt_flow;
+
+/**
+ * implement functions declared in the header, these can be called in other modules
+ */
+void opencv_frontend_init(
+    uint16_t src_h, uint16_t src_w,
+    float src_scale_coef, float of_roi_h_coef, float of_roi_w_coef,
+    int of_method)
 {
-  Mat rotated;
-  transpose(src, rotated);
-  flip(rotated, rotated, 0);
-  return rotated;
-}
-
-void opencv_frontend_run(
-  struct image_t *input, int optflow_algo, float roi_flow_h_scale, float roi_flow_w_scale, bool draw, bool opencvshow,
-  uint8_t lum_min, uint8_t lum_max,
-  uint8_t cb_min, uint8_t cb_max,
-  uint8_t cr_min, uint8_t cr_max,
-  uint32_t *color_count
-)
-{
-  static bool first_run = true;
-  static Mat prev_gray;
-  static Ptr<DenseOpticalFlow> algorithm;
-  static Rect roi_optflow;
-
-  Mat src_gray;
-  Mat rgb, frame;
-  Mat flow, flow_uv[2];
-  Mat mag, ang;
-  Mat hsv_split[3], hsv;
-  cvtColor(Mat(input->h, input->w, CV_8UC2, (char *)input->buf), src_gray, CV_YUV2GRAY_Y422);
-
-  if(first_run)
-  {
-    prev_gray = Mat::zeros(input->h, input->w, CV_8UC1);
-    rgb = Mat::zeros(input->h, input->w, CV_8UC3);
-    switch(optflow_algo)
+    switch (of_method)
     {
     case FARNEBACK:
-      algorithm = createOptFlow_Farneback();
-      break;
-
+        opt_flow.algorithm = createOptFlow_Farneback();
+        break;
     case PCAFLOW:
-      algorithm = createOptFlow_PCAFlow();
-      break;
-
+        opt_flow.algorithm = createOptFlow_PCAFlow();
+        break;
     case DISMEDIUM:
-      algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_MEDIUM);
-      break;
-
+        opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_MEDIUM);
+        break;
     case DISFAST:
-      algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_FAST);
-      break;
-
+        opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_FAST);
+        break;
     case DISULTRAFAST:
     default:
-      algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_ULTRAFAST);
-      break;
+        opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_ULTRAFAST);
+        break;
     }
-    float roi_h_px = input->h * roi_flow_h_scale;
-    float roi_w_px = input->w * roi_flow_w_scale;
-    int h_offset = roi_h_px / 2;
-    int w_offset = roi_w_px / 2;
-    roi_optflow = Rect(input->w / 2 - w_offset, input->h / 2 - h_offset, w_offset * 2, h_offset * 2);
-    // it seems that using roi to crop image is a bit slow
-    first_run = false;
-  }
-  else
-  {
-    // optical flow
-    algorithm->calc(prev_gray, src_gray, flow);
-    split(flow, flow_uv);
-    multiply(flow_uv[1], -1, flow_uv[1]);
-    cartToPolar(flow_uv[0], flow_uv[1], mag, ang, true);
-    normalize(mag, mag, 0, 1, NORM_MINMAX);
-    hsv_split[0] = ang;
-    hsv_split[1] = Mat::ones(ang.size(), ang.type());
-    hsv_split[2] = mag;
-    merge(hsv_split, 3, hsv);
-    cvtColor(hsv, rgb, COLOR_HSV2BGR);
-  }
-  std::swap(prev_gray, src_gray);
-
-  //color detection
-  Mat color_mask = Mat::zeros(input->h, input->w, CV_8UC1);
-  uint32_t cnt = 0;
-  uint32_t tot_x = 0;
-  uint32_t tot_y = 0;
-  uint8_t *buffer = (uint8_t *)input->buf;
-
-  for (uint16_t y = 0; y < input->h; y++) {
-    for (uint16_t x = 0; x < input->w; x ++) {
-      // Check if the color is inside the specified values
-      uint8_t *yp, *up, *vp;
-      if (x % 2 == 0) {
-        // Even x
-        up = &buffer[y * 2 * input->w + 2 * x];      // U
-        yp = &buffer[y * 2 * input->w + 2 * x + 1];  // Y1
-        vp = &buffer[y * 2 * input->w + 2 * x + 2];  // V
-        //yp = &buffer[y * 2 * input->w + 2 * x + 3]; // Y2
-      } else {
-        // Uneven x
-        up = &buffer[y * 2 * input->w + 2 * x - 2];  // U
-        //yp = &buffer[y * 2 * input->w + 2 * x - 1]; // Y1
-        vp = &buffer[y * 2 * input->w + 2 * x];      // V
-        yp = &buffer[y * 2 * input->w + 2 * x + 1];  // Y2
-      }
-      if ( (*yp >= lum_min) && (*yp <= lum_max) &&
-           (*up >= cb_min ) && (*up <= cb_max ) &&
-           (*vp >= cr_min ) && (*vp <= cr_max )) {
-        cnt ++;
-        tot_x += x;
-        tot_y += y;
-        if (draw){
-          *yp = 255;  // make pixel brighter in image
-          color_mask.at<uchar>(y, x) = 255;
+    opt_flow.h = (int)(src_h * src_scale_coef);
+    opt_flow.w = (int)(src_w * src_scale_coef);
+    float roi_h_px = opt_flow.h * of_roi_h_coef;
+    float roi_w_px = opt_flow.w * of_roi_w_coef;
+    int h_half_px = roi_h_px / 2;
+    int w_half_px = roi_w_px / 2;
+    opt_flow.roi = Rect(
+        opt_flow.w / 2 - w_half_px, opt_flow.h / 2 - h_half_px,
+        w_half_px * 2, h_half_px * 2);
+    opt_flow.dist_to_centre = Mat::zeros(h_half_px * 2, w_half_px * 2, CV_32FC1);
+    for (int i = 0; i < opt_flow.dist_to_centre.rows; i++)
+    {
+        for (int j = 0; j < opt_flow.dist_to_centre.cols; j++)
+        {
+            float i_mid = (float)(opt_flow.dist_to_centre.rows - 1) / 2;
+            float j_mid = (float)(opt_flow.dist_to_centre.cols - 1) / 2;
+            opt_flow.dist_to_centre.at<float>(i, j) = sqrt(pow(i - i_mid, 2) + pow(j - j_mid, 2));
         }
-      }
     }
-  }
-  *color_count = cnt;
+}
 
-  if(opencvshow)
-  {
-    imshow("orig", rotate(src_gray));
-    imshow("flow", rotate(rgb));
-    imshow("color", rotate(color_mask));
+void opencv_frontend_run(struct image_t *src_0, struct image_t *src_1)
+{
+    opt_flow.gray[0] = preprocess(src_0);
+    opt_flow.gray[1] = preprocess(src_1);
+    opt_flow.algorithm->calc(
+        opt_flow.gray[0],
+        opt_flow.gray[1],
+        opt_flow.flow_raw);
+    split(opt_flow.flow_raw, opt_flow.flow_uv);
+    multiply(opt_flow.flow_uv[1], -1, opt_flow.flow_uv[1]);
+    cartToPolar(
+        opt_flow.flow_uv[0], opt_flow.flow_uv[1],
+        opt_flow.flow_mag, opt_flow.flow_ang, true);
+    divide(opt_flow.flow_mag, opt_flow.dist_to_centre, opt_flow.flow_eof);
+    float lmag = 0, rmag = 0, leof = 0, reof = 0;
+    int mid = (float)(opt_flow.flow_mag.rows - 1) / 2;
+    for (int i = 0; i < opt_flow.flow_mag.rows; i++)
+    {
+        for (int j = 0; j < opt_flow.flow_mag.cols; j++)
+        {
+            if (i < mid)
+            {
+                lmag += opt_flow.flow_mag.at<float>(i, j);
+                leof += opt_flow.flow_eof.at<float>(i, j);
+            }
+            else if (i > mid)
+            {
+                rmag += opt_flow.flow_mag.at<float>(i, j);
+                reof += opt_flow.flow_eof.at<float>(i, j);
+            }
+        }
+    }
+    opt_flow.lmag = lmag;
+    opt_flow.leof = leof;
+    opt_flow.rmag = rmag;
+    opt_flow.reof = reof;
 
+#ifdef TARGET_IS_NPS
+    Mat src_gray, hsv_split[3], flow_hsv, flow_bgr;
+
+    cvtColor(Mat(src_1->h, src_1->w, CV_8UC2, (char *)src_1->buf), src_gray, CV_YUV2GRAY_Y422);
+
+    normalize(opt_flow.flow_mag, opt_flow.flow_mag, 0, 1, NORM_MINMAX);
+    hsv_split[0] = opt_flow.flow_ang;
+    hsv_split[1] = Mat::ones(opt_flow.flow_ang.size(), opt_flow.flow_ang.type());
+    hsv_split[2] = opt_flow.flow_mag;
+    merge(hsv_split, 3, flow_hsv);
+    cvtColor(flow_hsv, flow_bgr, COLOR_HSV2BGR);
+
+    imshow("src.gray", rotate(src_gray));
+    imshow("optflow.gray[0]", rotate(opt_flow.gray[0]));
+    imshow("optflow.gray[1]", rotate(opt_flow.gray[1]));
+    imshow("optflow.bgr", rotate(flow_bgr));
     waitKey(1);
-  }
+#endif
+}
+
+struct opencv_frontend_return_t opencv_frontend_return(void)
+{
+    struct opencv_frontend_return_t ret;
+    ret.lmag = opt_flow.lmag;
+    ret.rmag = opt_flow.rmag;
+    ret.leof = opt_flow.leof;
+    ret.reof = opt_flow.reof;
+    return ret;
+}
+
+#ifdef TARGET_IS_NPS
+void opencv_frontend_cbimshow(struct image_t *src)
+{
+    Mat yuv = Mat(src->h, src->w, CV_8UC2, (char *)src->buf);
+    Mat bgr;
+    cvtColor(yuv, bgr, CV_YUV2BGR_Y422);
+    imshow("cb.bgr", rotate(bgr));
+    waitKey(1);
+}
+#endif
+
+/**
+ * implement helper functions
+ */
+#ifdef TARGET_IS_NPS
+Mat rotate(Mat src)
+{
+    Mat rotated;
+    transpose(src, rotated);
+    flip(rotated, rotated, 0);
+    return rotated;
+}
+#endif
+
+Mat preprocess(struct image_t *src)
+{
+    Mat src_gray;
+    cvtColor(Mat(src->h, src->w, CV_8UC2, (char *)src->buf), src_gray, CV_YUV2GRAY_Y422);
+    resize(src_gray, src_gray, Size(opt_flow.w, opt_flow.h));
+    return src_gray(opt_flow.roi).clone();
 }

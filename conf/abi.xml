@@ -246,6 +246,14 @@
       <field name="vel_sp" type="struct FloatVect3 *" unit="m/s"/>
     </message>
 
+    <message name="CV_MAZE_RUNNER" id="37">
+      <field name="left_flow_mag" type="float"/>
+      <field name="right_flow_mag" type="float"/>
+      <field name="left_flow_eof" type="float"/>
+      <field name="right_flow_eof" type="float"/>
+      <field name="fps" type="int"/>
+    </message>
+
   </msg_class>
 
 </protocol>

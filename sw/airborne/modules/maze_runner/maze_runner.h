@@ -18,7 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/** @file "modules/maze_runner/maze_runner.h"
+/**
+ * @file "modules/maze_runner/maze_runner.h"
  * @author Ryan Y. Liu <yueqianliu@outlook.com>
  * A module for AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
  * This module aims to provide a collision free navigation strategy for the Bebop in the Cyberzoo.
@@ -29,9 +30,10 @@
 #define MAZE_RUNNER_H
 
 #include "firmwares/rotorcraft/navigation.h"
+#include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "generated/airframe.h"
-#include "state.h"
 #include "modules/core/abi.h"
+#include "state.h"
 #include <time.h>
 #include <stdio.h>
 
@@ -62,9 +64,11 @@ uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 uint8_t increase_nav_heading(float incrementDegrees);
 uint8_t chooseRandomIncrementAvoidance(void);
 
-void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                        int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
-                        int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                        int32_t quality, int16_t __attribute__((unused)) extra);
+void cv_cb(uint8_t __attribute__((unused)) sender_id,
+           float left_flow_mag,
+           float right_flow_mag,
+           float left_flow_eof,
+           float right_flow_eof,
+           int fps);
 
 #endif

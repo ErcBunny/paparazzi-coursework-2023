@@ -7,6 +7,15 @@
     #include "modules/radio_control/radio_control.h"
     #include "modules/ahrs/ahrs.h"
     #define NPS_GAZEBO_WORLD "cyberzoo2019_orange_poles_panels_mats.world"
+    #include "autopilot.h"
+    inline void setNav(void){
+      autopilot_mode_auto2 = AP_MODE_NAV;
+      autopilot_static_set_mode(AP_MODE_NAV);
+    }
+    inline void setGuided(void){
+      autopilot_mode_auto2 = AP_MODE_GUIDED;
+      autopilot_static_set_mode(AP_MODE_GUIDED);
+    }
 </header>
   <waypoints>
     <waypoint lat="51.990631" lon="4.376796" name="HOME"/>
@@ -19,7 +28,6 @@
     <waypoint lat="51.9906440" lon="4.3767060" name="_CZ2"/>
     <waypoint lat="51.9906860" lon="4.3768080" name="_CZ3"/>
     <waypoint lat="51.9906238" lon="4.3768729" name="_CZ4"/>
-
     <waypoint lat="51.9905860" lon="4.3767712" name="_OZ1"/>
     <waypoint lat="51.9906430" lon="4.3767110" name="_OZ2"/>
     <waypoint lat="51.9906830" lon="4.3768048" name="_OZ3"/>
@@ -55,7 +63,7 @@
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
       !(nav_block >= IndexOfBlock('land here')) @AND
       (autopilot_in_flight() == true) )" deroute="land here"/>
-    <!-- Geofencing Z 3.5 -->
+    <!-- Geofencing Z 2.5 -->
     <exception cond="((GetPosAlt() @GT 3.5) @AND
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
       !(nav_block >= IndexOfBlock('land here')) @AND
@@ -103,19 +111,22 @@
       <stay wp="STDBY"/>
     </block>
     <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
-      <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
-      <stay wp="GOAL"/>
+      <call_once fun="setGuided()"/>
+      <stay wp="STDBY"/>
     </block>
     <block name="STOP">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
+      <call_once fun="setNav()"/>
       <stay wp="STDBY"/>
     </block>
-    <block key="l" name="land here" strip_button="land here" strip_icon="land-right.png">
+    <block key="l" name="land here" strip_button="Land Here" strip_icon="land-right.png">
+      <call_once fun="setNav()"/>
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
       <go wp="TD"/>
       <deroute block="Flare"/>
     </block>
     <block name="Land">
+      <call_once fun="setNav()"/>
       <go wp="TD"/>
       <deroute block="Flare"/>
     </block>

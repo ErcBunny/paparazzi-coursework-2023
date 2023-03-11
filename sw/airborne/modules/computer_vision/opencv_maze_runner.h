@@ -2,7 +2,8 @@
 #define OPENCV_MAZE_RUNNER_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "modules/computer_vision/cv.h"
@@ -14,14 +15,24 @@ extern "C" {
 #define DISFAST 3
 #define DISULTRAFAST 4
 
-void opencv_frontend_run(
-  struct image_t *input, int optflow_algo, float roi_flow_h_scale, float roi_flow_w_scale, bool draw, bool opencvshow,
-  uint8_t lum_min, uint8_t lum_max,
-  uint8_t cb_min, uint8_t cb_max,
-  uint8_t cr_min, uint8_t cr_max,
-  uint32_t *color_count
-);
+    struct opencv_frontend_return_t
+    {
+        float lmag;
+        float rmag;
+        float leof;
+        float reof;
+    };
 
+    void opencv_frontend_init(
+        uint16_t src_h, uint16_t src_w,
+        float src_scale_coef, float of_roi_h_coef, float of_roi_w_coef,
+        int of_method);
+
+    void opencv_frontend_run(struct image_t *src_0, struct image_t *src_1);
+
+    struct opencv_frontend_return_t opencv_frontend_return(void);
+
+    void opencv_frontend_cbimshow(struct image_t *src);
 
 #ifdef __cplusplus
 }

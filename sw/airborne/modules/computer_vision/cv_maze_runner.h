@@ -6,30 +6,16 @@
 #include "modules/core/abi.h"
 #include "modules/computer_vision/cv.h"
 #include "pthread.h"
+#include <time.h>
 #include <stdio.h>
 
 #include "modules/computer_vision/opencv_maze_runner.h"
 
 #define CV_MAZE_RUNNER_VERBOSE TRUE
 
-#define SIM TRUE
-
-#if SIM
-#define LM_MIN 41
-#define LM_MAX 183
-#define CB_MIN 53
-#define CB_MAX 121
-#define CR_MIN 134
-#define CR_MAX 249
-#else
-#define LM_MIN 30
-#define LM_MAX 190
-#define CB_MIN 70
-#define CB_MAX 130
-#define CR_MIN 150
-#define CR_MAX 190
-#endif
-
+#define CB_STATE_FIRST_RUN 0
+#define CB_STATE_SECOND_RUN 1
+#define CB_STATE_INITIALIZED 2
 
 extern void cv_maze_runner_init(void);
 extern void cv_maze_runner_loop(void);

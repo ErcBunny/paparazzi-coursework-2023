@@ -18,7 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/** @file "modules/maze_runner/maze_runner_helper.c"
+/**
+ * @file "modules/maze_runner/maze_runner_helper.c"
  * @author Ryan Y. Liu <yueqianliu@outlook.com>
  * A module for AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
  * This module aims to provide a collision free navigation strategy for the Bebop in the Cyberzoo.

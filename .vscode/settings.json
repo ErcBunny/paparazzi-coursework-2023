@@ -77,7 +77,10 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "*.traits": "cpp",
-        "fft": "cpp"
+        "fft": "cpp",
+        "approach_moving_target.h": "c",
+        "*.expression": "cpp",
+        "alignedvector3": "cpp"
     },
     "C_Cpp.dimInactiveRegions": false,
     "esbonio.sphinx.confDir": "",
