@@ -27,6 +27,9 @@
  */
 
 #include "modules/maze_runner/maze_runner.h"
+#include "modules/datalink/telemetry.h"
+#define NAV_C // needed to get the nav functions like Inside...
+#include "generated/flight_plan.h"
 
 #define PRINT(string, ...) fprintf(stderr, "[maze_runner->%s()] " string, __FUNCTION__, ##__VA_ARGS__)
 #if MAZE_RUNNER_VERBOSE
@@ -35,15 +38,24 @@
 #define VERBOSE_PRINT(...)
 #endif
 
-float oa_color_count_frac = 0.18f;
-enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count = 0;                     // orange color count from color filter for obstacle detection
-int16_t obstacle_free_confidence = 0;        // a measure of how certain we are that the way ahead is safe.
-float heading_increment = 5.f;               // heading angle increment [deg]
-float maxDistance = 2.25;                    // max waypoint displacement [m]
-const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
-static abi_event cv_ev;
+/**
+ * additional function declarations
+ */
+void telem_cb(struct transport_tx *trans, struct link_device *dev);
 
+/**
+ * global var, shared within this file
+ */
+static abi_event cv_ev;
+static struct cv_info_t cv_info, cv_info_cpy;
+static struct dbg_msg_t dbg_msg, dbg_msg_cpy;
+static struct cmd_t cmd;
+static pthread_mutex_t mtx_cv_info;
+static pthread_mutex_t mtx_dbg_msg;
+
+/**
+ * implement functions
+ */
 void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float left_flow_mag,
            float right_flow_mag,
@@ -51,25 +63,76 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float right_flow_eof,
            int fps)
 {
-    VERBOSE_PRINT("[%d, %d], [%d, %d], %d\n", (int)left_flow_mag, (int)right_flow_mag, (int)left_flow_eof, (int)right_flow_eof, fps);
+    pthread_mutex_lock(&mtx_cv_info);
+    cv_info.lmag = left_flow_mag;
+    cv_info.rmag = right_flow_mag;
+    cv_info.leof = left_flow_eof;
+    cv_info.reof = right_flow_eof;
+    cv_info.fps = fps;
+    pthread_mutex_unlock(&mtx_cv_info);
+}
+
+void telem_cb(struct transport_tx *trans, struct link_device *dev)
+{
+    pthread_mutex_lock(&mtx_dbg_msg);
+    memcpy(&dbg_msg_cpy, &dbg_msg, sizeof(dbg_msg));
+    pthread_mutex_unlock(&mtx_dbg_msg);
+    pprz_msg_send_MAZE_RUNNER(
+            trans, dev, AC_ID,
+            &dbg_msg_cpy.fps,
+            &dbg_msg_cpy.lmag, &dbg_msg_cpy.rmag,
+            &dbg_msg_cpy.leof, &dbg_msg_cpy.reof,
+            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof
+            );
 }
 
 void maze_runner_init(void)
 {
+    ctrl_backend_init();
     AbiBindMsgCV_MAZE_RUNNER(0, &cv_ev, cv_cb);
+    register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_MAZE_RUNNER, telem_cb);
 }
 
 void maze_runner_loop(void)
 {
-//   loop frequency set in the module xml
-//   only evaluate our state machine if we are flying
-   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED)
-   {
-     return;
-   }
+    // control output at the front to ensure constant frequency
+    if (guidance_h.mode == GUIDANCE_H_MODE_GUIDED)
+    {
+        guidance_h_set_body_vel(cmd.body_vel_x, cmd.body_vel_y);
+        guidance_h_set_heading_rate(cmd.yaw_rate);
+    }
 
-   guidance_h_set_body_vel(0.1, 0);
-   guidance_h_set_heading_rate(0.1);
+    // fill dbg_msg
+    pthread_mutex_lock(&mtx_dbg_msg);
+    dbg_msg.lmag = cv_info_cpy.lmag;
+    dbg_msg.rmag = cv_info_cpy.rmag;
+    dbg_msg.leof = cv_info_cpy.leof;
+    dbg_msg.reof = cv_info_cpy.reof;
+    dbg_msg.dmag = cv_info_cpy.lmag - cv_info_cpy.rmag;
+    dbg_msg.deof = cv_info_cpy.leof - cv_info_cpy.reof;
+    pthread_mutex_unlock(&mtx_dbg_msg);
 
-  return;
+    // get copy of shared resource
+    pthread_mutex_lock(&mtx_cv_info);
+    memcpy(&cv_info_cpy, &cv_info, sizeof(cv_info));
+    pthread_mutex_unlock(&mtx_cv_info);
+
+    // get mav state
+    struct mav_state_t mav;
+    mav.pos_enu = *stateGetPositionEnu_f();
+    mav.vel_enu = *stateGetSpeedEnu_f();
+    mav.rpy_ned = *stateGetNedToBodyEulers_f();
+    mav.ang_vel_body = *stateGetBodyRates_f();
+
+    // get goal waypoint
+    struct EnuCoor_f goal_wp;
+    goal_wp.x = waypoint_get_x(WP_GUIDED_GOAL);
+    goal_wp.y = waypoint_get_y(WP_GUIDED_GOAL);
+    goal_wp.z = waypoint_get_alt(WP_GUIDED_GOAL);
+
+    // calculate control output, which will be used asap in the next loop
+    ctrl_backend_run(&cmd, &goal_wp, &mav, &cv_info_cpy);
+
+    return;
 }
+

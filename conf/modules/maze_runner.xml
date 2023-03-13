@@ -6,7 +6,6 @@
       This module aims to provide a collision free navigation strategy for the Bebop in the Cyberzoo.
       Cyberzoo == Maze, so bebop == maze runner :p
     </description>
-    <define name="MAZE_RUNNER_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for orange pole detection."/>
   </doc>
   <dep>
     <depends>cv_detect_color_object</depends>
@@ -15,7 +14,7 @@
     <file name="maze_runner.h"/>
   </header>
   <init fun="maze_runner_init()"/>
-  <periodic fun="maze_runner_loop()" freq="5.0" autorun="TRUE"/>
+  <periodic fun="maze_runner_loop()" freq="20.0" autorun="TRUE"/>
   <makefile target="ap|nps">
     <file name="maze_runner.c"/>
     <file name="maze_runner_helper.c"/>

@@ -33,36 +33,58 @@
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "generated/airframe.h"
 #include "modules/core/abi.h"
+#include "pthread.h"
 #include "state.h"
+#include "string.h"
+#include "math.h"
 #include <time.h>
 #include <stdio.h>
 
-#define NAV_C // needed to get the nav functions like Inside...
+
 
 #define MAZE_RUNNER_VERBOSE TRUE
 #ifndef MAZE_RUNNER_VISUAL_DETECTION_ID
 #define MAZE_RUNNER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
 
-enum navigation_state_t
+struct cv_info_t
 {
-  SAFE,
-  OBSTACLE_FOUND,
-  SEARCH_FOR_SAFE_HEADING,
-  OUT_OF_BOUNDS
+    float lmag;
+    float rmag;
+    float leof;
+    float reof;
+    int fps;
 };
 
-extern float oa_color_count_frac;
-extern float heading_increment;
+struct dbg_msg_t
+{
+    float lmag;
+    float rmag;
+    float leof;
+    float reof;
+    float dmag;
+    float deof;
+    int16_t fps;
+};
+
+struct cmd_t
+{
+    float yaw_rate;
+    float body_vel_x;
+    float body_vel_y;
+};
+
+
+struct mav_state_t
+{
+    struct EnuCoor_f pos_enu;
+    struct EnuCoor_f vel_enu;
+    struct FloatEulers rpy_ned;
+    struct FloatRates ang_vel_body;
+};
 
 extern void maze_runner_init(void);
 extern void maze_runner_loop(void);
-
-uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
-uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
-uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
-uint8_t increase_nav_heading(float incrementDegrees);
-uint8_t chooseRandomIncrementAvoidance(void);
 
 void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float left_flow_mag,
@@ -70,5 +92,8 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float left_flow_eof,
            float right_flow_eof,
            int fps);
+
+void ctrl_backend_init(void);
+void ctrl_backend_run(struct cmd_t *cmd, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv);
 
 #endif

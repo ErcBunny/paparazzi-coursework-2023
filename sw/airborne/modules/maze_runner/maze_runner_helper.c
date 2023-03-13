@@ -35,77 +35,68 @@
 #define VERBOSE_PRINT(...)
 #endif
 
-/*
- * Increases the NAV heading. Assumes heading is an INT32_ANGLE. It is bound in this function.
+/**
+ * global variables, only shared within this file
  */
-uint8_t increase_nav_heading(float incrementDegrees)
-{
-  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
+static int stage = 0;
 
-  // normalize heading to [-pi, pi]
-  FLOAT_ANGLE_NORMALIZE(new_heading);
-
-  // set heading, declared in firmwares/rotorcraft/navigation.h
-  // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
-  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
-
-  // VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-  return false;
-}
-
-/*
- * Calculates coordinates of distance forward and sets waypoint 'waypoint' to those coordinates
+/**
+ * implement functions
  */
-uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
+void ctrl_backend_init(void){}
+void ctrl_backend_run(struct cmd_t *cmd, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv)
 {
-  struct EnuCoor_i new_coor;
-  calculateForwards(&new_coor, distanceMeters);
-  moveWaypoint(waypoint, &new_coor);
-  return false;
-}
+    float err_mag = cv->lmag - cv->rmag;
+    float err_eof = cv->leof - cv->reof;
+    float err_x = goal->x - mav->pos_enu.x;
+    float err_y = goal->y - mav->pos_enu.y;
+    float mav_heading = mav->rpy_ned.psi;
+    float wp_heading = atan2(err_x, err_y);
+    if(mav_heading < 0)
+    {
+        mav_heading += 2 * M_PI;
+    }
+    if(wp_heading < 0)
+    {
+        wp_heading += 2 * M_PI;
+    }
+    float err_wp = wp_heading - mav_heading;
+    if(err_wp > M_PI)
+    {
+        err_wp -= 2 * M_PI;
+    }
+    else if(err_wp < -M_PI)
+    {
+        err_wp += 2 * M_PI;
+    }
+    switch (stage) {
+        case 0:
+            cmd->body_vel_x = 0;
+            cmd->body_vel_y = 0;
+            cmd->yaw_rate = 0.5 * err_wp;
+            if(fabs(err_wp) < 0.2)
+            {
+                stage = 1;
+            }
+            break;
+        case 1:
+            cmd->body_vel_x = 0.3;
+            cmd->body_vel_y = 0;
+            cmd->yaw_rate = 0.5 * err_wp;
+            if(fabs(err_x) < 0.5 && fabs(err_y) < 0.5)
+            {
+                stage = 2;
+            }
+            break;
+        case 2:
+            cmd->body_vel_x = 0;
+            cmd->body_vel_y = 0;
+            cmd->yaw_rate = 0;
+            if(fabs(err_wp) > 0.2 || fabs(err_x) > 0.5 || fabs(err_y) > 0.5)
+            {
+                stage = 0;
+            }
+            break;
+    }
 
-/*
- * Calculates coordinates of a distance of 'distanceMeters' forward w.r.t. current position and heading
- */
-uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
-{
-  float heading = stateGetNedToBodyEulers_f()->psi;
-
-  // Now determine where to place the waypoint you want to go to
-  new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
-  new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-  // VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,
-  //               POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-  //               stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
-  return false;
-}
-
-/*
- * Sets waypoint 'waypoint' to the coordinates of 'new_coor'
- */
-uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
-{
-  // VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-  //               POS_FLOAT_OF_BFP(new_coor->y));
-  waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
-  return false;
-}
-
-/*
- * Sets the variable 'heading_increment' randomly positive/negative
- */
-uint8_t chooseRandomIncrementAvoidance(void)
-{
-  // Randomly choose CW or CCW avoiding direction
-  if (rand() % 2 == 0)
-  {
-    heading_increment = 5.f;
-    // VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  }
-  else
-  {
-    heading_increment = -5.f;
-    // VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  }
-  return false;
 }
