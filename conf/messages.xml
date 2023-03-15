@@ -1757,6 +1757,9 @@
       <field name="reof" type="float"/>
       <field name="dmag" type="float"/>
       <field name="deof" type="float"/>
+      <field name="dmag_lpf" type="float"/>
+      <field name="deof_lpf" type="float"/>
+      <field name="eof_sum" type="float"/>
     </message>
 
     <message name="IMU_GYRO" id="200">

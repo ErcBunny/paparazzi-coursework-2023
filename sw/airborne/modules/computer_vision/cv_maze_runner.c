@@ -31,6 +31,8 @@ struct image_t *video_cb(struct image_t *img, uint8_t camera_id __attribute__((u
 
     image_copy(img, &src[0]);
     opencv_frontend_init(img->h, img->w, 0.4, 1.0, 0.45, DISULTRAFAST);
+    // opencv_frontend_init(img->h, img->w, 0.4, 1.0, 0.45, DISFAST); -> 8-15 FPS
+    // opencv_frontend_init(img->h, img->w, 0.4, 1.0, 0.45, DISULTRAFAST); -> 25 FPS
 
     pthread_mutex_lock(&mutex);
     cb_state = CB_STATE_SECOND_RUN;

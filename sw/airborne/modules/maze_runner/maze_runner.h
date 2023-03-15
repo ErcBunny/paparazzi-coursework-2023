@@ -64,6 +64,9 @@ struct dbg_msg_t
     float reof;
     float dmag;
     float deof;
+    float dmag_lpf;
+    float deof_lpf;
+    float eof_sum;
     int16_t fps;
 };
 
@@ -83,6 +86,19 @@ struct mav_state_t
     struct FloatRates ang_vel_body;
 };
 
+struct var_t
+{
+    float x;
+    float dx;
+};
+
+struct nav_weights_t
+{
+    float wp;
+    float mag;
+    float eof;
+};
+
 extern void maze_runner_init(void);
 extern void maze_runner_loop(void);
 
@@ -94,6 +110,12 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            int fps);
 
 void ctrl_backend_init(void);
-void ctrl_backend_run(struct cmd_t *cmd, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv);
+void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv);
+
+float get_wp_err(float err_x, float err_y, struct mav_state_t *mav);
+void low_pass_filter(struct var_t *var, float input, float alpha);
+void sigmoid_nav_weight(struct nav_weights_t *weights, struct var_t *eof_sum, float eof_sum_thresh_0, float eof_sum_thresh_1, float switch_rate);
+void constrain(float *x, float min, float max);
+float pd_ctrl(struct var_t *var, float p, float d);
 
 #endif

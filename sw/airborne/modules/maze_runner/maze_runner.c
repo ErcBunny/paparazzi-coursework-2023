@@ -48,7 +48,7 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev);
  */
 static abi_event cv_ev;
 static struct cv_info_t cv_info, cv_info_cpy;
-static struct dbg_msg_t dbg_msg, dbg_msg_cpy;
+static struct dbg_msg_t dbg_msg, dbg_msg_cpy, dbg_msg_ctrl;
 static struct cmd_t cmd;
 static pthread_mutex_t mtx_cv_info;
 static pthread_mutex_t mtx_dbg_msg;
@@ -82,7 +82,9 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev)
             &dbg_msg_cpy.fps,
             &dbg_msg_cpy.lmag, &dbg_msg_cpy.rmag,
             &dbg_msg_cpy.leof, &dbg_msg_cpy.reof,
-            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof
+            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof,
+            &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf,
+            &dbg_msg_cpy.eof_sum
             );
 }
 
@@ -104,12 +106,7 @@ void maze_runner_loop(void)
 
     // fill dbg_msg
     pthread_mutex_lock(&mtx_dbg_msg);
-    dbg_msg.lmag = cv_info_cpy.lmag;
-    dbg_msg.rmag = cv_info_cpy.rmag;
-    dbg_msg.leof = cv_info_cpy.leof;
-    dbg_msg.reof = cv_info_cpy.reof;
-    dbg_msg.dmag = cv_info_cpy.lmag - cv_info_cpy.rmag;
-    dbg_msg.deof = cv_info_cpy.leof - cv_info_cpy.reof;
+    memcpy(&dbg_msg, &dbg_msg_ctrl, sizeof(dbg_msg_ctrl));
     pthread_mutex_unlock(&mtx_dbg_msg);
 
     // get copy of shared resource
@@ -131,7 +128,7 @@ void maze_runner_loop(void)
     goal_wp.z = waypoint_get_alt(WP_GUIDED_GOAL);
 
     // calculate control output, which will be used asap in the next loop
-    ctrl_backend_run(&cmd, &goal_wp, &mav, &cv_info_cpy);
+    ctrl_backend_run(&cmd, &dbg_msg_ctrl, &goal_wp, &mav, &cv_info_cpy);
 
     return;
 }
