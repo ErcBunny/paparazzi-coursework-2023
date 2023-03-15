@@ -58,15 +58,12 @@ struct cv_info_t
 
 struct dbg_msg_t
 {
-    float lmag;
-    float rmag;
-    float leof;
-    float reof;
     float dmag;
     float deof;
+    float seof;
     float dmag_lpf;
     float deof_lpf;
-    float eof_sum;
+    float seof_lpf;
     int16_t fps;
 };
 

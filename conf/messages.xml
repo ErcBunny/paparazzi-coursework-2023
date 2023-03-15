@@ -1751,15 +1751,12 @@
 
     <message name="MAZE_RUNNER" id="199">
       <field name="fps"  type="int16"/>
-      <field name="lmag" type="float"/>
-      <field name="rmag" type="float"/>
-      <field name="leof" type="float"/>
-      <field name="reof" type="float"/>
       <field name="dmag" type="float"/>
       <field name="deof" type="float"/>
+      <field name="seof" type="float"/>
       <field name="dmag_lpf" type="float"/>
       <field name="deof_lpf" type="float"/>
-      <field name="eof_sum" type="float"/>
+      <field name="seof_lpf" type="float"/>
     </message>
 
     <message name="IMU_GYRO" id="200">

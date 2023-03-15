@@ -15,7 +15,7 @@
     <file name="cv_maze_runner.h"/>
   </header>
   <init fun="cv_maze_runner_init()"/>
-  <periodic fun="cv_maze_runner_loop()" freq="20" autorun="TRUE"/>
+  <periodic fun="cv_maze_runner_loop()" freq="50" autorun="TRUE"/>
   <makefile target="ap">
     <file name="cv_maze_runner.c"/>
     <file name="opencv_maze_runner.cpp"/>

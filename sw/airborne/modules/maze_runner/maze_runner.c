@@ -80,11 +80,8 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev)
     pprz_msg_send_MAZE_RUNNER(
             trans, dev, AC_ID,
             &dbg_msg_cpy.fps,
-            &dbg_msg_cpy.lmag, &dbg_msg_cpy.rmag,
-            &dbg_msg_cpy.leof, &dbg_msg_cpy.reof,
-            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof,
-            &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf,
-            &dbg_msg_cpy.eof_sum
+            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof, &dbg_msg_cpy.seof,
+            &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf, &dbg_msg_cpy.seof_lpf
             );
 }
 

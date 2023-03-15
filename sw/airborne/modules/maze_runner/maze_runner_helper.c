@@ -65,7 +65,7 @@ void ctrl_backend_init(void)
 
     p_wp = 1;
     d_wp = 0.05;
-    alpha = 0.05 / (0 + 0.05);
+    alpha = 0.02 / (1 + 0.02);
     p_mag = 0.0001;
     d_mag = 0.00;
     p_dst = 1;
@@ -116,8 +116,8 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         case 1:
             cmd->body_vel_x = 0.4;
             cmd->body_vel_y = 0;
-            cmd->yaw_rate = pd_ctrl(&err_wp, p_wp, d_wp);// + pd_ctrl(&err_mag, p_mag, d_mag);
-            constrain(&cmd->yaw_rate, -1, 1);
+            cmd->yaw_rate = pd_ctrl(&err_wp, p_wp, d_wp);
+            constrain(&cmd->yaw_rate, -M_PI, M_PI);
 
             if(fabs(err_dst.x) < 0.5)
             {
@@ -141,15 +141,12 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
 
     // dbg msg
     dbg->fps = cv->fps;
-    dbg->lmag = cv->lmag;
-    dbg->rmag = cv->rmag;
-    dbg->leof = cv->leof;
-    dbg->reof = cv->reof;
     dbg->dmag = cv->lmag - cv->rmag;
     dbg->deof = cv->leof - cv->reof;
+    dbg->seof = cv->leof + cv->reof;
     dbg->dmag_lpf = err_mag.x;
     dbg->deof_lpf = err_eof.x;
-    dbg->eof_sum = cv->leof + cv->reof;
+    dbg->seof_lpf = sum_eof.x;
 }
 
 float get_wp_err(float err_x, float err_y, struct mav_state_t *mav)
@@ -164,21 +161,21 @@ float get_wp_err(float err_x, float err_y, struct mav_state_t *mav)
     {
         wp_heading += 2 * M_PI;
     }
-    float err_wp = wp_heading - mav_heading;
-    if(err_wp > M_PI)
+    float err = wp_heading - mav_heading;
+    if(err > M_PI)
     {
-        err_wp -= 2 * M_PI;
+        err -= 2 * M_PI;
     }
-    else if(err_wp < -M_PI)
+    else if(err < -M_PI)
     {
-        err_wp += 2 * M_PI;
+        err += 2 * M_PI;
     }
-    return err_wp;
+    return err;
 }
 
-void low_pass_filter(struct var_t *var, float input, float alpha)
+void low_pass_filter(struct var_t *var, float input, float a)
 {
-    float new_x = alpha * input + (1 - alpha) * var->x;
+    float new_x = a * input + (1 - a) * var->x;
     var->dx = new_x - var->x;
     var->x = new_x;
 }
