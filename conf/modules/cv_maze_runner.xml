@@ -30,7 +30,7 @@
     <flag name="LDFLAGS" value="llibtiff"/>
     <flag name="LDFLAGS" value="lzlib"/>
     <flag name="LDFLAGS" value="lquirc"/>
-    <!-- <flag name="LDFLAGS" value="ltegra_hal"/> -->
+    <flag name="LDFLAGS" value="ltegra_hal"/>
     <flag name="LDFLAGS" value="ldl"/>
     <flag name="LDFLAGS" value="lm"/>
     <flag name="LDFLAGS" value="lpthread"/>
@@ -39,7 +39,6 @@
   <makefile target="nps">
     <file name="cv_maze_runner.c"/>
     <file name="opencv_maze_runner.cpp"/>
-    <!-- <file name="opencv_image_functions.cpp"/> -->
 
     <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install_pc/include"/>
     <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
@@ -47,11 +46,15 @@
     <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib"/>
     <flag name="LDFLAGS" value="llibprotobuf"/>
     <flag name="LDFLAGS" value="lquirc"/>
-    <flag name="LDFLAGS" value="L/usr/lib/aarch64-linux-gnu"/>
+    <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu"/>
+    <!-- <flag name="LDFLAGS" value="L/usr/lib/aarch64-linux-gnu"/> -->
+
     <flag name="LDFLAGS" value="ljpeg"/>
     <flag name="LDFLAGS" value="lpng"/>
     <flag name="LDFLAGS" value="ltiff"/>
-    <flag name="LDFLAGS" value="L/usr/lib/aarch64-linux-gnu/hdf5/serial"/>
+    <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu/hdf5/serial"/>
+    <!-- <flag name="LDFLAGS" value="L/usr/lib/aarch64-linux-gnu/hdf5/serial"/> -->
+
     <flag name="LDFLAGS" value="lhdf5"/>
     <flag name="LDFLAGS" value="lpthread"/>
     <flag name="LDFLAGS" value="lsz"/>
