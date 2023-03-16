@@ -40,8 +40,6 @@
 #include <time.h>
 #include <stdio.h>
 
-
-
 #define MAZE_RUNNER_VERBOSE TRUE
 #ifndef MAZE_RUNNER_VISUAL_DETECTION_ID
 #define MAZE_RUNNER_VISUAL_DETECTION_ID ABI_BROADCAST
@@ -73,7 +71,6 @@ struct cmd_t
     float body_vel_x;
     float body_vel_y;
 };
-
 
 struct mav_state_t
 {
@@ -119,5 +116,5 @@ void low_pass_filter(struct var_t *var, float input, float alpha);
 void constrain(float *x, float min, float max);
 float pd_ctrl(struct var_t *var, float p, float d);
 void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel);
-bool is_origin_lhs(struct mav_state_t *mav);
+void update_tmp_wp(struct EnuCoor_f *tmp_wp, struct mav_state_t *mav, struct var_t *err_of_mag, float heading_thresh, float dst);
 #endif

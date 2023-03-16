@@ -49,12 +49,13 @@
  */
 static struct zone_t *geofence;
 static struct EnuCoor_f last_goal, tmp_wp;
-static struct var_t err_mag, err_eof, err_wp, err_dst, sum_eof;
+static struct var_t err_mag, err_eof, err_wp, err_dst, sum_eof, err_wp_tmp, err_dst_tmp;
 static float p_wp, d_wp;
 static int action;
 static int loop_cnt, accel_cnt_thresh, back_cnt_thresh;
 static float wp_hit_radius, heading_diff_thresh, seof_thresh, fwd_vel, back_vel;
 static float dmag_lpf_tau, deof_lpf_tau, seof_lpf_tau, loop_period;
+static float turn_use_dmag_thresh, tmp_wp_dst;
 
 /**
  * implement functions
@@ -66,9 +67,11 @@ void ctrl_backend_init(struct zone_t *zone)
 
     err_mag.x = err_mag.dx = 0;
     err_eof.x = err_eof.dx = 0;
-    err_wp.x = err_wp.dx= 0;
+    err_wp.x = err_wp.dx = 0;
     err_dst.x = err_dst.dx = 0;
     sum_eof.x = sum_eof.dx = 0;
+    err_wp_tmp.x = err_wp_tmp.dx = 0;
+    err_dst_tmp.x = err_dst_tmp.dx = 0;
 
     p_wp = 1;
     d_wp = 0.05;
@@ -79,28 +82,41 @@ void ctrl_backend_init(struct zone_t *zone)
     back_cnt_thresh = 10;
     wp_hit_radius = 0.5;
     heading_diff_thresh = 0.1;
-    seof_thresh = 222;
+    seof_thresh = 233;
     fwd_vel = 0.4;
     back_vel = -1;
     dmag_lpf_tau = 1;
     deof_lpf_tau = 1;
     seof_lpf_tau = 0;
     loop_period = 0.02;
+
+    turn_use_dmag_thresh = 0.5;
+    tmp_wp_dst = 1;
 }
 
 void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv)
 {
-    // xy err
+    // goal wp xy err
     float err_x = goal->x - mav->pos_enu.x;
     float err_y = goal->y - mav->pos_enu.y;
     float err_dst_new = sqrt(pow(err_x, 2) + pow(err_y, 2));
     err_dst.dx = err_dst_new - err_dst.x;
     err_dst.x = err_dst_new;
-
-    // wp heading err
+    // goal wp heading err
     float err_wp_new = get_wp_err(err_x, err_y, mav);
     err_wp.dx = err_wp_new - err_wp.x;
     err_wp.x = err_wp_new;
+
+    // do the same for tmp wp
+    float err_x_tmp = tmp_wp.x - mav->pos_enu.x;
+    float err_y_tmp = tmp_wp.y - mav->pos_enu.y;
+    float err_dst_new_tmp = sqrt(pow(err_x_tmp, 2) + pow(err_y_tmp, 2));
+    err_dst_tmp.dx = err_dst_new_tmp - err_dst_tmp.x;
+    err_dst_tmp.x = err_dst_new_tmp;
+    // tmp wp heading err
+    float err_wp_new_tmp = get_wp_err(err_x_tmp, err_y_tmp, mav);
+    err_wp_tmp.dx = err_wp_new_tmp - err_wp_tmp.x;
+    err_wp_tmp.x = err_wp_new_tmp;
 
     // store cv info after lpf
     low_pass_filter(&err_mag, cv->lmag - cv->rmag, loop_period / (dmag_lpf_tau + loop_period));
@@ -110,41 +126,93 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
     // state machine
     switch (action)
     {
-        case STAND_BY:
-        default:
-            set_cmd(cmd, 0, 0, 0);
-            if(err_dst.x > wp_hit_radius && (goal->x != last_goal.x || goal->y != last_goal.y)){action = TURN_TO_GOAL;}
-            break;
-        case TURN_TO_GOAL:
+    case STAND_BY:
+    default:
+        set_cmd(cmd, 0, 0, 0);
+        if (err_dst.x > wp_hit_radius && (goal->x != last_goal.x || goal->y != last_goal.y))
+        {
+            action = TURN_TO_GOAL;
+        }
+        break;
+    case TURN_TO_GOAL:
+        set_cmd(cmd, 0, 0, pd_ctrl(&err_wp, p_wp, d_wp));
+        if (fabs(err_wp.x) < heading_diff_thresh)
+        {
+            action = ACCEL_TO_GOAL;
+            loop_cnt = 0;
+        }
+        break;
+    case ACCEL_TO_GOAL:
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
+        if (loop_cnt > accel_cnt_thresh)
+        {
+            action = GO_TO_GOAL;
+        }
+        loop_cnt += 1;
+        break;
+    case GO_TO_GOAL:
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
+        if (sum_eof.x > seof_thresh)
+        {
+            update_tmp_wp(&tmp_wp, mav, &err_mag, turn_use_dmag_thresh, tmp_wp_dst);
+            action = BACK_UP;
+            loop_cnt = 0;
+        }
+        if (err_dst.x <= wp_hit_radius)
+        {
+            
+            action = STAND_BY;
+        }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
+        break;
+    case BACK_UP:
+        set_cmd(cmd, back_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
+        if (loop_cnt > back_cnt_thresh)
+        {
             set_cmd(cmd, 0, 0, pd_ctrl(&err_wp, p_wp, d_wp));
-            if(fabs(err_wp.x) < heading_diff_thresh){action = ACCEL_TO_GOAL; loop_cnt = 0;}
-            break;
-        case ACCEL_TO_GOAL:
-            set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
-            if(loop_cnt > accel_cnt_thresh){action = GO_TO_GOAL;}
-            loop_cnt += 1;
-            break;
-        case GO_TO_GOAL:
-            set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
-            if(sum_eof.x > seof_thresh)
+            if(loop_cnt > back_cnt_thresh + 2 * accel_cnt_thresh)
             {
-                action = BACK_UP;
-                loop_cnt = 0;
+                action = TURN_TO_TMP;
             }
-            if(err_dst.x <= wp_hit_radius){action = STAND_BY;}
-            if(goal->x != last_goal.x || goal->y != last_goal.y){action = TURN_TO_GOAL;}
-            break;
-        case BACK_UP:
-            set_cmd(cmd, back_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
-            if(loop_cnt > back_cnt_thresh){action = STAND_BY;}
-            loop_cnt += 1;
-            break;
-        case TURN_TO_TMP:
-            break;
-        case ACCEL_TO_TMP:
-            break;
-        case GO_TO_TMP:
-            break;
+        }
+        loop_cnt += 1;
+        break;
+    case TURN_TO_TMP:
+        set_cmd(cmd, 0, 0, pd_ctrl(&err_wp_tmp, p_wp, d_wp));
+        if (fabs(err_wp_tmp.x) < heading_diff_thresh)
+        {
+            action = ACCEL_TO_TMP;
+            loop_cnt = 0;
+        }
+        break;
+    case ACCEL_TO_TMP:
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp_tmp, p_wp, d_wp));
+        if (loop_cnt > accel_cnt_thresh)
+        {
+            action = GO_TO_TMP;
+        }
+        loop_cnt += 1;
+        break;
+    case GO_TO_TMP:
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp_tmp, p_wp, d_wp));
+        if (sum_eof.x > seof_thresh)
+        {
+            update_tmp_wp(&tmp_wp, mav, &err_mag, turn_use_dmag_thresh, tmp_wp_dst);
+            action = BACK_UP;
+            loop_cnt = 0;
+        }
+        if (err_dst_tmp.x <= wp_hit_radius / 2.5)
+        {
+            action = TURN_TO_GOAL;
+        }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
+        break;
     }
     last_goal.x = goal->x;
     last_goal.y = goal->y;
@@ -163,20 +231,20 @@ float get_wp_err(float err_x, float err_y, struct mav_state_t *mav)
 {
     float mav_heading = mav->rpy_ned.psi;
     float wp_heading = atan2(err_x, err_y);
-    if(mav_heading < 0)
+    if (mav_heading < 0)
     {
         mav_heading += 2 * M_PI;
     }
-    if(wp_heading < 0)
+    if (wp_heading < 0)
     {
         wp_heading += 2 * M_PI;
     }
     float err = wp_heading - mav_heading;
-    if(err > M_PI)
+    if (err > M_PI)
     {
         err -= 2 * M_PI;
     }
-    else if(err < -M_PI)
+    else if (err < -M_PI)
     {
         err += 2 * M_PI;
     }
@@ -192,11 +260,11 @@ void low_pass_filter(struct var_t *var, float input, float a)
 
 void constrain(float *x, float min, float max)
 {
-    if(*x > max)
+    if (*x > max)
     {
         *x = max;
     }
-    if(*x < min)
+    if (*x < min)
     {
         *x = min;
     }
@@ -214,28 +282,48 @@ void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel)
     cmd->body_vel_y = vy;
 }
 
-bool is_origin_lhs(struct mav_state_t *mav)
+void update_tmp_wp(struct EnuCoor_f *wp, struct mav_state_t *mav, struct var_t *err_of_mag, float heading_thresh, float dst)
 {
     float mav_heading = mav->rpy_ned.psi;
     float mav_x = mav->pos_enu.x;
     float mav_y = mav->pos_enu.y;
     float origin_to_mav_heading = atan2(mav_x, mav_y);
-    if(origin_to_mav_heading < 0)
+    if (origin_to_mav_heading < 0)
     {
         origin_to_mav_heading += 2 * M_PI;
     }
-    if(origin_to_mav_heading < 0)
+    if (origin_to_mav_heading < 0)
     {
         origin_to_mav_heading += 2 * M_PI;
     }
     float err = origin_to_mav_heading - mav_heading;
-    if(err > M_PI)
+    if (err > M_PI)
     {
         err -= 2 * M_PI;
     }
-    else if(err < -M_PI)
+    else if (err < -M_PI)
     {
         err += 2 * M_PI;
     }
-    return (err > 0);
+    bool is_turn_left;
+    // determine turn left or right based on err of mag
+    if (fabs(err) < heading_thresh || fabs(err) > M_PI - heading_thresh || sqrt(pow(mav_x, 2) + pow(mav_y, 2) < 2))
+    {
+        is_turn_left = (err_of_mag->x < 0);
+    }
+    // determine turn left or right based on mav xy in relation to the origin
+    else
+    {
+        is_turn_left = (err > 0);
+    }
+    if (is_turn_left)
+    {
+        wp->x = mav_x - dst * cos(-mav_heading);
+        wp->y = mav_y - dst * sin(-mav_heading);
+    }
+    else
+    {
+        wp->x = mav_x + dst * cos(-mav_heading);
+        wp->y = mav_y + dst * sin(-mav_heading);
+    } 
 }

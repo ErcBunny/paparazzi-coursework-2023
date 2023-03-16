@@ -78,11 +78,10 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev)
     memcpy(&dbg_msg_cpy, &dbg_msg, sizeof(dbg_msg));
     pthread_mutex_unlock(&mtx_dbg_msg);
     pprz_msg_send_MAZE_RUNNER(
-            trans, dev, AC_ID,
-            &dbg_msg_cpy.fps,
-            &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof, &dbg_msg_cpy.seof,
-            &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf, &dbg_msg_cpy.seof_lpf
-            );
+        trans, dev, AC_ID,
+        &dbg_msg_cpy.fps,
+        &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof, &dbg_msg_cpy.seof,
+        &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf, &dbg_msg_cpy.seof_lpf);
 }
 
 void maze_runner_init(void)
@@ -104,7 +103,7 @@ void maze_runner_init(void)
     zone.corner[3].x = waypoint_get_x(WP__OZ4);
     zone.corner[3].y = waypoint_get_y(WP__OZ4);
     zone.corner[3].z = waypoint_get_alt(WP__OZ4);
-    
+
     ctrl_backend_init(&zone);
     AbiBindMsgCV_MAZE_RUNNER(0, &cv_ev, cv_cb);
     register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_MAZE_RUNNER, telem_cb);
@@ -147,4 +146,3 @@ void maze_runner_loop(void)
 
     return;
 }
-
