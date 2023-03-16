@@ -87,7 +87,25 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev)
 
 void maze_runner_init(void)
 {
-    ctrl_backend_init();
+    struct zone_t zone;
+
+    zone.corner[0].x = waypoint_get_x(WP__OZ1);
+    zone.corner[0].y = waypoint_get_y(WP__OZ1);
+    zone.corner[0].z = waypoint_get_alt(WP__OZ1);
+
+    zone.corner[1].x = waypoint_get_x(WP__OZ2);
+    zone.corner[1].y = waypoint_get_y(WP__OZ2);
+    zone.corner[1].z = waypoint_get_alt(WP__OZ2);
+
+    zone.corner[2].x = waypoint_get_x(WP__OZ3);
+    zone.corner[2].y = waypoint_get_y(WP__OZ3);
+    zone.corner[2].z = waypoint_get_alt(WP__OZ3);
+
+    zone.corner[3].x = waypoint_get_x(WP__OZ4);
+    zone.corner[3].y = waypoint_get_y(WP__OZ4);
+    zone.corner[3].z = waypoint_get_alt(WP__OZ4);
+    
+    ctrl_backend_init(&zone);
     AbiBindMsgCV_MAZE_RUNNER(0, &cv_ev, cv_cb);
     register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_MAZE_RUNNER, telem_cb);
 }

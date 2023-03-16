@@ -17,7 +17,7 @@
   <periodic fun="maze_runner_loop()" freq="20.0" autorun="TRUE"/>
   <makefile target="ap|nps">
     <file name="maze_runner.c"/>
-    <file name="maze_runner_helper.c"/>
+    <file name="maze_runner_backend.c"/>
     <test/>
   </makefile>
 </module>
