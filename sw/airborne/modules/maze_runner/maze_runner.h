@@ -117,4 +117,5 @@ void constrain(float *x, float min, float max);
 float pd_ctrl(struct var_t *var, float p, float d);
 void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel);
 void update_tmp_wp(struct EnuCoor_f *tmp_wp, struct mav_state_t *mav, struct var_t *err_of_mag, float heading_thresh, float dst);
+bool is_inside_zone(struct EnuCoor_f *pos, struct zone_t *zone);
 #endif

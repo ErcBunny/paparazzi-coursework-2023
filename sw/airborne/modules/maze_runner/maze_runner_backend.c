@@ -36,6 +36,7 @@
 #define TURN_TO_TMP 5
 #define ACCEL_TO_TMP 6
 #define GO_TO_TMP 7
+#define LITTLE_STOP 8
 
 #define PRINT(string, ...) fprintf(stderr, "[maze_runner->%s()] " string, __FUNCTION__, ##__VA_ARGS__)
 #if MAZE_RUNNER_VERBOSE
@@ -82,7 +83,7 @@ void ctrl_backend_init(struct zone_t *zone)
     back_cnt_thresh = 10;
     wp_hit_radius = 0.5;
     heading_diff_thresh = 0.1;
-    seof_thresh = 233;
+    seof_thresh = 222;
     fwd_vel = 0.4;
     back_vel = -1;
     dmag_lpf_tau = 1;
@@ -148,6 +149,10 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         {
             action = GO_TO_GOAL;
         }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
         loop_cnt += 1;
         break;
     case GO_TO_GOAL:
@@ -160,7 +165,6 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         }
         if (err_dst.x <= wp_hit_radius)
         {
-            
             action = STAND_BY;
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
@@ -169,14 +173,18 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         }
         break;
     case BACK_UP:
-        set_cmd(cmd, back_vel, 0, pd_ctrl(&err_wp, p_wp, d_wp));
+        set_cmd(cmd, back_vel, 0, 0);
         if (loop_cnt > back_cnt_thresh)
         {
-            set_cmd(cmd, 0, 0, pd_ctrl(&err_wp, p_wp, d_wp));
-            if(loop_cnt > back_cnt_thresh + 2 * accel_cnt_thresh)
+            set_cmd(cmd, 0, 0, 0);
+            if (loop_cnt > back_cnt_thresh + 2 * accel_cnt_thresh)
             {
                 action = TURN_TO_TMP;
             }
+        }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
         }
         loop_cnt += 1;
         break;
@@ -187,6 +195,10 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
             action = ACCEL_TO_TMP;
             loop_cnt = 0;
         }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
         break;
     case ACCEL_TO_TMP:
         set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp_tmp, p_wp, d_wp));
@@ -194,10 +206,14 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         {
             action = GO_TO_TMP;
         }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
         loop_cnt += 1;
         break;
     case GO_TO_TMP:
-        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&err_wp_tmp, p_wp, d_wp));
+        set_cmd(cmd, fwd_vel, 0, 0);
         if (sum_eof.x > seof_thresh)
         {
             update_tmp_wp(&tmp_wp, mav, &err_mag, turn_use_dmag_thresh, tmp_wp_dst);
@@ -206,12 +222,25 @@ void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f
         }
         if (err_dst_tmp.x <= wp_hit_radius / 2.5)
         {
+            action = LITTLE_STOP;
+            loop_cnt = 0;
+        }
+        if (goal->x != last_goal.x || goal->y != last_goal.y)
+        {
+            action = TURN_TO_GOAL;
+        }
+        break;
+    case LITTLE_STOP:
+        set_cmd(cmd, 0, 0, 0);
+        if (loop_cnt > 2 * accel_cnt_thresh)
+        {
             action = TURN_TO_GOAL;
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
         {
             action = TURN_TO_GOAL;
         }
+        loop_cnt += 1;
         break;
     }
     last_goal.x = goal->x;
@@ -306,16 +335,30 @@ void update_tmp_wp(struct EnuCoor_f *wp, struct mav_state_t *mav, struct var_t *
         err += 2 * M_PI;
     }
     bool is_turn_left;
-    // determine turn left or right based on err of mag
-    if (fabs(err) < heading_thresh || fabs(err) > M_PI - heading_thresh || sqrt(pow(mav_x, 2) + pow(mav_y, 2) < 2))
+    // first choose the direction based on the optflow mag and eof
+    VERBOSE_PRINT("stop due to large eof: %f\n", sum_eof.x);
+    if(fabs(err_mag.x) > 500)
     {
-        is_turn_left = (err_of_mag->x < 0);
+        // if dmag > thresh use dmag
+        is_turn_left = (err_mag.x < 0);
+        VERBOSE_PRINT("generate tmp wp using dmag: %f\n", err_mag.x);
     }
-    // determine turn left or right based on mav xy in relation to the origin
     else
     {
-        is_turn_left = (err > 0);
+        // otherwise use deof
+        is_turn_left = (err_eof.x < 0);
+        VERBOSE_PRINT("generate tmp wp using deof: %f\n", err_eof.x);
     }
+    // if (fabs(err) < heading_thresh || fabs(err) > M_PI - heading_thresh || sqrt(pow(mav_x, 2) + pow(mav_y, 2) < 2.5))
+    // {
+    //     is_turn_left = (err_of_mag->x < 0);
+    // }
+    // else
+    // {
+    //     is_turn_left = (err > 0);
+    // }
+
+    // tmp wp proposal
     if (is_turn_left)
     {
         wp->x = mav_x - dst * cos(-mav_heading);
@@ -325,5 +368,12 @@ void update_tmp_wp(struct EnuCoor_f *wp, struct mav_state_t *mav, struct var_t *
     {
         wp->x = mav_x + dst * cos(-mav_heading);
         wp->y = mav_y + dst * sin(-mav_heading);
-    } 
+    }
+    // check if the proposal is inside the arena
+
+}
+
+bool is_inside_zone(struct EnuCoor_f *pos, struct zone_t *zone)
+{
+    return true;
 }
