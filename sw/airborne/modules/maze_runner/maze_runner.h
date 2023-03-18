@@ -108,14 +108,24 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float right_flow_eof,
            int fps);
 
-void ctrl_backend_init(struct zone_t *zone);
-void ctrl_backend_run(struct cmd_t *cmd, struct dbg_msg_t *dbg, struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv);
+void ctrl_backend_init(
+    struct zone_t *zone,
+    float acc_thresh, float bac_thresh, float res_thresh,
+    float wp_hit_r, float heading_hit, float stop_seof_thresh, float trun_dmag_thresh,
+    float v_fwd, float v_back,
+    float lpf_t_dmag, float lpf_t_deof, float lpf_t_seof, float period,
+    float tmp_wp_dist,
+    float pd_p, float pd_d);
+void ctrl_backend_run(
+    struct cmd_t *cmd, struct dbg_msg_t *dbg,
+    struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv,
+    bool is_guided);
 
-float get_wp_err(float err_x, float err_y, struct mav_state_t *mav);
+float get_wp_heading_err(float err_x, float err_y, struct mav_state_t *mav);
 void low_pass_filter(struct var_t *var, float input, float alpha);
 void constrain(float *x, float min, float max);
 float pd_ctrl(struct var_t *var, float p, float d);
 void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel);
-void update_tmp_wp(struct EnuCoor_f *tmp_wp, struct mav_state_t *mav, struct var_t *err_of_mag, float heading_thresh, float dst);
-bool is_inside_zone(struct EnuCoor_f *pos, struct zone_t *zone);
+void update_tmp_wp(struct mav_state_t *mav);
+bool is_inside_zone(struct EnuCoor_f *point);
 #endif

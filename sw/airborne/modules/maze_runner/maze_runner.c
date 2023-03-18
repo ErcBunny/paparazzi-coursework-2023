@@ -49,7 +49,7 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev);
 static abi_event cv_ev;
 static struct cv_info_t cv_info, cv_info_cpy;
 static struct dbg_msg_t dbg_msg, dbg_msg_cpy, dbg_msg_ctrl;
-static struct cmd_t cmd;
+static struct cmd_t cmd = {0, 0, 0};
 static pthread_mutex_t mtx_cv_info;
 static pthread_mutex_t mtx_dbg_msg;
 
@@ -104,7 +104,14 @@ void maze_runner_init(void)
     zone.corner[3].y = waypoint_get_y(WP__OZ4);
     zone.corner[3].z = waypoint_get_alt(WP__OZ4);
 
-    ctrl_backend_init(&zone);
+    ctrl_backend_init(
+        &zone,
+        50, 30, 50,
+        0.5, 0.1, 225, 900,
+        0.4, -1.0,
+        1.0, 1.0, 0.0, 0.02,
+        1.0,
+        1.0, 0.02);
     AbiBindMsgCV_MAZE_RUNNER(0, &cv_ev, cv_cb);
     register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_MAZE_RUNNER, telem_cb);
 }
@@ -112,11 +119,8 @@ void maze_runner_init(void)
 void maze_runner_loop(void)
 {
     // control output at the front to ensure constant frequency
-    if (guidance_h.mode == GUIDANCE_H_MODE_GUIDED)
-    {
-        guidance_h_set_body_vel(cmd.body_vel_x, cmd.body_vel_y);
-        guidance_h_set_heading_rate(cmd.yaw_rate);
-    }
+    guidance_h_set_body_vel(cmd.body_vel_x, cmd.body_vel_y);
+    guidance_h_set_heading_rate(cmd.yaw_rate);
 
     // fill dbg_msg
     pthread_mutex_lock(&mtx_dbg_msg);
@@ -142,7 +146,10 @@ void maze_runner_loop(void)
     goal_wp.z = waypoint_get_alt(WP_GUIDED_GOAL);
 
     // calculate control output, which will be used asap in the next loop
-    ctrl_backend_run(&cmd, &dbg_msg_ctrl, &goal_wp, &mav, &cv_info_cpy);
+    ctrl_backend_run(
+        &cmd, &dbg_msg_ctrl,
+        &goal_wp, &mav, &cv_info_cpy,
+        guidance_h.mode == GUIDANCE_H_MODE_GUIDED);
 
     return;
 }
