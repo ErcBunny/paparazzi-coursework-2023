@@ -46,6 +46,17 @@
 #endif
 
 /**
+ * additional helper functions
+ */
+float get_wp_heading_err(float err_x, float err_y, struct mav_state_t *mav);
+void low_pass_filter(struct var_t *var, float input, float alpha);
+void constrain(float *x, float min, float max);
+float pd_ctrl(struct var_t *var, float p, float d);
+void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel);
+void update_tmp_wp(struct mav_state_t *mav);
+bool is_inside_zone(struct EnuCoor_f *point);
+
+/**
  * global variables, only shared within this file
  */
 
@@ -253,7 +264,14 @@ void ctrl_backend_run(
         }
         break;
     case LITTLE_STOP:
-        set_cmd(cmd, 0, 0, 0);
+        if (loop_cnt < accel_cnt_thresh)
+        {
+            set_cmd(cmd, -fwd_vel, 0, 0);
+        }
+        else if (loop_cnt >= accel_cnt_thresh && loop_cnt < 2 * accel_cnt_thresh)
+        {
+            set_cmd(cmd, 0, 0, 0);
+        }
         if (loop_cnt > rest_cnt_thresh)
         {
             action = TURN_TO_GOAL;
@@ -416,7 +434,6 @@ void update_tmp_wp(struct mav_state_t *mav)
     last_tmp_wp[0].y = last_tmp_wp[1].y;
     last_tmp_wp[1].x = tmp_wp.x;
     last_tmp_wp[1].y = tmp_wp.y;
-    
 }
 
 bool is_inside_zone(struct EnuCoor_f *point)

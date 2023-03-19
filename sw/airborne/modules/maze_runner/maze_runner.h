@@ -121,11 +121,6 @@ void ctrl_backend_run(
     struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv,
     bool is_guided);
 
-float get_wp_heading_err(float err_x, float err_y, struct mav_state_t *mav);
-void low_pass_filter(struct var_t *var, float input, float alpha);
-void constrain(float *x, float min, float max);
-float pd_ctrl(struct var_t *var, float p, float d);
-void set_cmd(struct cmd_t *cmd, float vx, float vy, float ang_vel);
-void update_tmp_wp(struct mav_state_t *mav);
-bool is_inside_zone(struct EnuCoor_f *point);
+void toggle_auto_gen_wp(void);
+
 #endif
