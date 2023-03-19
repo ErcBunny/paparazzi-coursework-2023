@@ -1,4 +1,14 @@
-# MAIN README
+# MAIN README - Hacked By Group 12 in Q3 2023
+
+Authors:
+* [Andriuškevičius, Justas](https://github.com/justas145)
+* Fuser, Michaël
+* [Liu, Yueqian](https://github.com/ErcBunny)
+* Long, Youyuan
+* [Monarcha, Enzo](https://github.com/enzomonarcha)
+* [Ou, Dequan](https://github.com/dfordequan)
+
+Our airframe is `bebop_maze_runner`, feel free to play around. This `README` is WIP and will get updates about usage and implementation.
 
 Paparazzi UAS
 =============

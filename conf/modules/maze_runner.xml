@@ -1,20 +1,77 @@
 <!DOCTYPE module SYSTEM "module.dtd">
 <module name="maze_runner" dir="maze_runner">
+
   <doc>
     <description>
       A module for AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
       This module aims to provide a collision free navigation strategy for the Bebop in the Cyberzoo.
       Cyberzoo == Maze, so bebop == maze runner :p
     </description>
+    <define name="MR_ACCEL_CNT_THRESH" description="Number of loops for accel/decel phase"/>
+    <define name="MR_BACK_CNT_THRESH" description="Number of loops for go back phase"/>
+    <define name="MR_REST_CNT_THRESH" description="Number of loops for rest(zero cmd) phase"/>
+    <define name="MR_WP_HIT_RADIUS" description="The MAV is at the waypoint if the distance < this value"/>
+    <define name="MR_HEAD_ALIGN_ANGLE" description="The MAV is facing the goal if the heading difference < this value"/>
+    <define name="MR_STOP_SUM_EOF_THRESH" description="The MAV stops if the sum of EOF > this value"/>
+    <define name="MR_TURN_DIF_MAG_THRESH" description="The MAV uses the difference of optical flow magnitude for deciding turning direction if it > this value"/>
+    <define name="MR_FWD_VEL" description="Forward velocity"/>
+    <define name="MR_BACK_VEL" description="Go back velocity"/>
+    <define name="MR_TAU_DIF_MAG" description="Time constant of low pass filter for the difference of optical flow magnitude"/>
+    <define name="MR_TAU_DIF_EOF" description="Time constant of low pass filter for the difference of EOF"/>
+    <define name="MR_TAU_SUM_EOF" description="Time constant of low pass filter for the sum of EOF"/>
+    <define name="MR_LOOP_PERIOD" description="Module loop period, should be consistent with the periodic freq"/>
+    <define name="MR_TMP_WP_DST" description="Distance between current position and the temporary waypoint generated during avoidance"/>
+    <define name="MR_PD_P" description="P gain for the heading PD controller"/>
+    <define name="MR_PD_D" description="D gain for the heading PD controller"/>
+    <define name="MR_AUTO_WP_ZONE_R" description="Auto waypoints are in a circle with radius of this value"/>
+    <define name="MR_AUTO_WP_ANG_INC" description="Each time auto waypoints are on different heading angles, this value is the increment"/>
+    <define name="MR_AUTO_WP_TIMEOUT" description="If the auto waypoint isn't hit for this value of loops, generate a new waypoint"/>
+    <define name="MR_AUTO_WP_WAIT_THRESH" description="Wait some loops after hitting the waypoint and generating a new one"/>
   </doc>
+
+  <settings>
+    <dl_settings>
+      <dl_settings name="Maze Runner">
+        <dl_setting var="stop_sum_eof_thresh" min="0" step="1" max="400" shortname="StopSEOF"/>
+        <dl_setting var="turn_dif_mag_thresh" min="0" step="1" max="1500" shortname="TurnDMAG"/>
+
+        <dl_setting var="accel_cnt_thresh" min="0" step="1" max="100" shortname="AccCnt"/>
+        <dl_setting var="back_cnt_thresh" min="0" step="1" max="100" shortname="BackCnt"/>
+        <dl_setting var="rest_cnt_thresh" min="0" step="1" max="100" shortname="RestCnt"/>
+
+        <dl_setting var="tmp_wp_dst" min="0" step="0.05" max="2" shortname="TmpWpDst"/>
+        <dl_setting var="wp_hit_radius" min="0" step="0.05" max="1" shortname="WpHitDst"/>
+        <dl_setting var="head_align_angle" min="0" step="0.05" max="0.5" shortname="HdgHitAng"/>
+
+        <dl_setting var="fwd_vel" min="0" step="0.05" max="1" shortname="FwdVel"/>
+        <dl_setting var="back_vel" min="-2" step="0.05" max="0" shortname="BackVel"/>
+
+        <dl_setting var="auto_wp_zone_r" min="0" step="0.1" max="4" shortname="AutoWpR"/>
+        <dl_setting var="auto_wp_angle_inc" min="0" step="0.1" max="3" shortname="AutoWpAngInc"/>
+        <dl_setting var="auto_wp_timeout" min="0" step="100" max="10000" shortname="AutoWpTout"/>
+        <dl_setting var="auto_wp_wait_thresh" min="0" step="1" max="100" shortname="AutoWpWait"/>
+
+        <dl_setting var="tau_dif_mag" min="0" step="0.1" max="5" shortname="TauDMAG"/>
+        <dl_setting var="tau_dif_eof" min="0" step="0.1" max="5" shortname="TauDEOF"/>
+        <dl_setting var="tau_sum_eof" min="0" step="0.1" max="5" shortname="TauSEOF"/>
+        <dl_setting var="pd_p" min="0" step="0.05" max="2" shortname="CtrlP"/>
+        <dl_setting var="pd_d" min="0" step="0.01" max="1" shortname="CtrlD"/>
+      </dl_settings>
+    </dl_settings>
+  </settings>
+
   <dep>
-    <depends>cv_detect_color_object</depends>
+    <depends>cv_maze_runner</depends>
   </dep>
+
   <header>
     <file name="maze_runner.h"/>
   </header>
+
   <init fun="maze_runner_init()"/>
+
   <periodic fun="maze_runner_loop()" freq="50.0" autorun="TRUE"/>
+
   <makefile target="ap|nps">
     <file name="maze_runner.c"/>
     <file name="maze_runner_backend.c"/>

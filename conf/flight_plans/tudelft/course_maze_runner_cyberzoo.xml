@@ -123,6 +123,7 @@
     <block name="Stop">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
       <call_once fun="setNav()"/>
+      <call_once fun="stop_auto_gen_wp()"/>
       <stay wp="STDBY"/>
     </block>
     <block key="l" name="land here" strip_button="Land Here" strip_icon="land-right.png">

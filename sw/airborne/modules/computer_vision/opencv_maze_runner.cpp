@@ -1,3 +1,28 @@
+/*
+ * Copyright (C) 2023 Ryan Y. Liu <yueqianliu@outlook.com>
+ *
+ * This file is part of paparazzi
+ *
+ * paparazzi is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * paparazzi is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with paparazzi; see the file COPYING.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * @file "modules/computer_vision/opencv_maze_runner.cpp"
+ * @author Ryan Y. Liu <yueqianliu@outlook.com>
+ */
+
 #include "opencv_maze_runner.h"
 
 #include <opencv2/core.hpp>
@@ -48,34 +73,31 @@ static struct optflow_t opt_flow;
 /**
  * implement functions declared in the header, these can be called in other modules
  */
-void opencv_frontend_init(
-    uint16_t src_h, uint16_t src_w,
-    float src_scale_coef, float of_roi_h_coef, float of_roi_w_coef,
-    int of_method)
+void opencv_frontend_init(uint16_t src_h, uint16_t src_w, int of_method)
 {
     switch (of_method)
     {
-    case FARNEBACK:
+    case 0:
         opt_flow.algorithm = createOptFlow_Farneback();
         break;
-    case PCAFLOW:
+    case 1:
         opt_flow.algorithm = createOptFlow_PCAFlow();
         break;
-    case DISMEDIUM:
+    case 2:
         opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_MEDIUM);
         break;
-    case DISFAST:
+    case 3:
         opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_FAST);
         break;
-    case DISULTRAFAST:
+    case 4:
     default:
         opt_flow.algorithm = createOptFlow_DIS(DISOpticalFlow::PRESET_ULTRAFAST);
         break;
     }
-    opt_flow.h = (int)(src_h * src_scale_coef);
-    opt_flow.w = (int)(src_w * src_scale_coef);
-    float roi_h_px = opt_flow.h * of_roi_h_coef;
-    float roi_w_px = opt_flow.w * of_roi_w_coef;
+    opt_flow.h = (int)(src_h * MR_OPTFLOW_IM_SCALE);
+    opt_flow.w = (int)(src_w * MR_OPTFLOW_IM_SCALE);
+    float roi_h_px = opt_flow.h * MR_OPTFLOW_ROI_HORI;
+    float roi_w_px = opt_flow.w * MR_OPTFLOW_ROI_VERT;
     int h_half_px = roi_h_px / 2;
     int w_half_px = roi_w_px / 2;
     opt_flow.roi = Rect(

@@ -53,16 +53,16 @@ static struct cmd_t cmd = {0, 0, 0};
 static pthread_mutex_t mtx_cv_info;
 static pthread_mutex_t mtx_dbg_msg;
 
-static bool is_auto_gen_wp = false, is_wp_cnt_even = true, first_autogen = true;
-static float zone_radius = 0;
-static float auto_wp_angle = 0, auto_wp_angle_delta;
-static int go_wp_timeout_loop_cnt = 0;
-static int go_wp_timeout_loop_cnt_thresh = 0;
-static float regen_wp_dst_thresh = 0;
-static int regen_wp_loop_interval = 0, regen_loop_cnt = 0;
+static bool is_standby = true;
+static bool is_auto_wp = false, is_auto_wp_cnt_even = true, is_first_auto_wp = true;
+static float auto_wp_angle = 0;
+static int auto_wp_cnt = 0;
+static int auto_wp_wait_cnt = 0;
 static struct mav_state_t mav;
 static struct EnuCoor_f goal_wp;
 static uint8_t goal_wpid = WP_GUIDED_GOAL;
+float auto_wp_zone_r, auto_wp_angle_inc;
+int auto_wp_timeout, auto_wp_wait_thresh;
 /**
  * implement functions
  */
@@ -114,23 +114,14 @@ void maze_runner_init(void)
     zone.corner[3].y = waypoint_get_y(WP__OZ4);
     zone.corner[3].z = waypoint_get_alt(WP__OZ4);
 
-    zone_radius = fmin(
-                      0.5 * sqrt(pow(zone.corner[0].x - zone.corner[1].x, 2) + pow(zone.corner[0].y - zone.corner[1].y, 2)),
-                      0.5 * sqrt(pow(zone.corner[1].x - zone.corner[2].x, 2) + pow(zone.corner[1].y - zone.corner[2].y, 2))) -
-                  0.5;
-    auto_wp_angle_delta = 1.0;
-    go_wp_timeout_loop_cnt_thresh = (int)(3 * (2 * zone_radius / 0.4) / 0.02);
-    regen_wp_dst_thresh = 0.1;
-    regen_wp_loop_interval = 50;
+    auto_wp_zone_r = fmin(
+        0.5 * sqrt(pow(zone.corner[0].x - zone.corner[1].x, 2) + pow(zone.corner[0].y - zone.corner[1].y, 2)),
+        0.5 * sqrt(pow(zone.corner[1].x - zone.corner[2].x, 2) + pow(zone.corner[1].y - zone.corner[2].y, 2)));
+    auto_wp_angle_inc = MR_AUTO_WP_ANG_INC;
+    auto_wp_timeout = MR_AUTO_WP_TIMEOUT;
+    auto_wp_wait_thresh = MR_AUTO_WP_WAIT_THRESH;
 
-    ctrl_backend_init(
-        &zone,
-        50, 30, 25,
-        0.5, 0.1, 225, 900,
-        0.4, -1.0,
-        1.0, 1.0, 0.0, 0.02,
-        1.0,
-        1.0, 0.02);
+    ctrl_backend_init(&zone);
     AbiBindMsgCV_MAZE_RUNNER(0, &cv_ev, cv_cb);
     register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_MAZE_RUNNER, telem_cb);
 }
@@ -158,29 +149,27 @@ void maze_runner_loop(void)
     mav.ang_vel_body = *stateGetBodyRates_f();
 
     // if auto generate waypoint, move WP_GUIDED_GOAL
-    if (is_auto_gen_wp)
+    if (is_auto_wp)
     {
-        float prev_x = waypoint_get_x(WP_GUIDED_GOAL);
-        float prev_y = waypoint_get_y(WP_GUIDED_GOAL);
         struct EnuCoor_f new_wp;
         new_wp.z = waypoint_get_alt(WP_GUIDED_GOAL);
 
-        if (pow(mav.pos_enu.x - prev_x, 2) + pow(mav.pos_enu.y - prev_y, 2) < regen_wp_dst_thresh)
+        if (is_standby)
         {
-            regen_loop_cnt += 1;
+            auto_wp_wait_cnt += 1;
         }
-        if (go_wp_timeout_loop_cnt > go_wp_timeout_loop_cnt_thresh || regen_loop_cnt > regen_wp_loop_interval || first_autogen)
+        if (auto_wp_cnt > auto_wp_timeout || auto_wp_wait_cnt > auto_wp_wait_thresh || is_first_auto_wp)
         {
-            if (is_wp_cnt_even)
+            if (is_auto_wp_cnt_even)
             {
-                new_wp.x = zone_radius * cos(auto_wp_angle);
-                new_wp.y = zone_radius * sin(auto_wp_angle);
+                new_wp.x = auto_wp_zone_r * cos(auto_wp_angle);
+                new_wp.y = auto_wp_zone_r * sin(auto_wp_angle);
             }
             else
             {
-                new_wp.x = zone_radius * cos(auto_wp_angle + M_PI);
-                new_wp.y = zone_radius * sin(auto_wp_angle + M_PI);
-                auto_wp_angle += auto_wp_angle_delta;
+                new_wp.x = auto_wp_zone_r * cos(auto_wp_angle + M_PI);
+                new_wp.y = auto_wp_zone_r * sin(auto_wp_angle + M_PI);
+                auto_wp_angle += auto_wp_angle_inc;
                 if (auto_wp_angle > 2 * M_PI)
                 {
                     auto_wp_angle -= 2 * M_PI;
@@ -193,19 +182,19 @@ void maze_runner_loop(void)
                 &waypoints[WP_GUIDED_GOAL].enu_i.y,
                 &waypoints[WP_GUIDED_GOAL].enu_i.z);
 
-            regen_loop_cnt = 0;
-            go_wp_timeout_loop_cnt = 0;
-            is_wp_cnt_even = !is_wp_cnt_even;
-            first_autogen = false;
+            auto_wp_wait_cnt = 0;
+            auto_wp_cnt = 0;
+            is_auto_wp_cnt_even = !is_auto_wp_cnt_even;
+            is_first_auto_wp = false;
         }
-        go_wp_timeout_loop_cnt += 1;
+        auto_wp_cnt += 1;
     }
     goal_wp.x = waypoint_get_x(WP_GUIDED_GOAL);
     goal_wp.y = waypoint_get_y(WP_GUIDED_GOAL);
     goal_wp.z = waypoint_get_alt(WP_GUIDED_GOAL);
 
     // calculate control output, which will be used asap in the next loop
-    ctrl_backend_run(
+    is_standby = ctrl_backend_run(
         &cmd, &dbg_msg_ctrl,
         &goal_wp, &mav, &cv_info_cpy,
         guidance_h.mode == GUIDANCE_H_MODE_GUIDED);
@@ -216,13 +205,19 @@ void maze_runner_loop(void)
 void toggle_auto_gen_wp()
 {
     // assignment is atomic, no need for lock
-    is_auto_gen_wp = !is_auto_gen_wp;
-    if (is_auto_gen_wp)
+    is_auto_wp = !is_auto_wp;
+    if (is_auto_wp)
     {
-        VERBOSE_PRINT("start using random waypoints\n");
+        VERBOSE_PRINT("start auto waypoints\n");
     }
     else
     {
-        VERBOSE_PRINT("stpp using random waypoints\n");
+        VERBOSE_PRINT("stop auto waypoints\n");
     }
+}
+
+void stop_auto_gen_wp()
+{
+    is_auto_wp = false;
+    VERBOSE_PRINT("stop auto waypoints\n");
 }

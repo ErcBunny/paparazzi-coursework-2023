@@ -1,42 +1,63 @@
 <!DOCTYPE airframe SYSTEM "../airframe.dtd">
 
 <airframe name="bebop_maze_runner">
-  <description>Vision Course TUDelft V2023
-  </description>
-
+  <description>Vision Course TUDelft V2023</description>
 
   <firmware name="rotorcraft">
+
     <target name="ap" board="bebop">
       <define name="VIDEO_CAPTURE_PATH" value="/data/ftp/internal_000/images"/>
       <define name="LOGGER_FILE_PATH" value="/data/ftp/internal_000/log"/>
       <define name="MT9V117_TARGET_FPS" value="20"/>
       <define name="TARGET_IS_AP"/>
-      
-      <!-- Detect orange -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="30"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="190"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="70"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="130"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="150"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="190"/>
+
+      <define name="MR_ACCEL_CNT_THRESH" value="50"/>
+      <define name="MR_BACK_CNT_THRESH" value="30"/>
+      <define name="MR_REST_CNT_THRESH" value="25"/>
+      <define name="MR_WP_HIT_RADIUS" value="0.5"/>
+      <define name="MR_HEAD_ALIGN_ANGLE" value="0.1"/>
+      <define name="MR_STOP_SUM_EOF_THRESH" value="225"/>
+      <define name="MR_TURN_DIF_MAG_THRESH" value="900"/>
+      <define name="MR_FWD_VEL" value="0.4"/>
+      <define name="MR_BACK_VEL" value="-1.0"/>
+      <define name="MR_TAU_DIF_MAG" value="1.0"/>
+      <define name="MR_TAU_DIF_EOF" value="1.0"/>
+      <define name="MR_TAU_SUM_EOF" value="0.0"/>
+      <define name="MR_LOOP_PERIOD" value="0.02"/>
+      <define name="MR_TMP_WP_DST" value="1.0"/>
+      <define name="MR_PD_P" value="1.0"/>
+      <define name="MR_PD_D" value="0.02"/>
+      <define name="MR_AUTO_WP_ANG_INC" value="1"/>
+      <define name="MR_AUTO_WP_TIMEOUT" value="2500"/>
+      <define name="MR_AUTO_WP_WAIT_THRESH" value="50"/>
     </target>
+
     <target name="nps" board="pc">
       <module name="fdm" type="gazebo"/>
       <define name="VIDEO_CAPTURE_PATH" value="/tmp/paparazzi/images"/>
       <define name="LOGGER_FILE_PATH" value="/tmp/paparazzi/log"/>
       <define name="TARGET_IS_NPS"/>
-      
-      <!-- Detect orange -->
-      
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="41"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="183"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="53"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="121"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="134"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="249"/>
+
+      <define name="MR_ACCEL_CNT_THRESH" value="50"/>
+      <define name="MR_BACK_CNT_THRESH" value="30"/>
+      <define name="MR_REST_CNT_THRESH" value="25"/>
+      <define name="MR_WP_HIT_RADIUS" value="0.5"/>
+      <define name="MR_HEAD_ALIGN_ANGLE" value="0.1"/>
+      <define name="MR_STOP_SUM_EOF_THRESH" value="225"/>
+      <define name="MR_TURN_DIF_MAG_THRESH" value="900"/>
+      <define name="MR_FWD_VEL" value="0.4"/>
+      <define name="MR_BACK_VEL" value="-1.0"/>
+      <define name="MR_TAU_DIF_MAG" value="1.0"/>
+      <define name="MR_TAU_DIF_EOF" value="1.0"/>
+      <define name="MR_TAU_SUM_EOF" value="0.0"/>
+      <define name="MR_LOOP_PERIOD" value="0.02"/>
+      <define name="MR_TMP_WP_DST" value="1.0"/>
+      <define name="MR_PD_P" value="1.0"/>
+      <define name="MR_PD_D" value="0.02"/>
+      <define name="MR_AUTO_WP_ANG_INC" value="1"/>
+      <define name="MR_AUTO_WP_TIMEOUT" value="2500"/>
+      <define name="MR_AUTO_WP_WAIT_THRESH" value="50"/>
     </target>
-    
-    <define name="ARRIVED_AT_WAYPOINT" value="0.5"/><!-- Detect arrival at waypoint when within 0.5m -->
 
   <!-- Subsystem section -->
     <module name="telemetry" type="transparent_udp"/>
@@ -65,12 +86,15 @@
       <define name="VIDEO_CAPTURE_FPS" value="10"/>
     </module>
     <module name="maze_runner">
-      <define name="MAZE_RUNNER_VISUAL_DETECTION_ID" value="COLOR_OBJECT_DETECTION1_ID"/>
+      <!-- params are written in the target section -->
     </module>
     <module name="cv_maze_runner">
-      <define name="CAMERA" value="front_camera"/>
-      <define name="MAX_FPS" value="0"/>
-      <define name="COLOR_FILTER_DRAW" value="1"/>
+      <define name="MR_CAMERA" value="front_camera"/>
+      <define name="MR_MAX_FPS" value="0"/>
+      <define name="MR_OPTFLOW_ALGO" value="4"/>
+      <define name="MR_OPTFLOW_IM_SCALE" value="0.4"/>
+      <define name="MR_OPTFLOW_ROI_HORI" value="1.0"/>
+      <define name="MR_OPTFLOW_ROI_VERT" value="0.45"/>
     </module>
     <module name="video_rtp_stream">
       <define name="VIEWVIDEO_CAMERA" value="front_camera"/>

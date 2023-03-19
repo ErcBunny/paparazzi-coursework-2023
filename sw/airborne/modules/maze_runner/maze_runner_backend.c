@@ -61,7 +61,7 @@ bool is_inside_zone(struct EnuCoor_f *point);
  */
 
 // variables with derivative info
-static struct var_t flow_delta_mag = {0, 0}, flow_delta_eof = {0, 0}, flow_sum_eof = {0, 0};
+static struct var_t flow_dif_mag = {0, 0}, flow_dif_eof = {0, 0}, flow_sum_eof = {0, 0};
 static struct var_t goal_heading_err = {0, 0}, goal_dst_err = {0, 0}, tmp_heading_err = {0, 0}, tmp_dst_err = {0, 0};
 
 // flight area and waypoints
@@ -73,54 +73,48 @@ static int action = STAND_BY;
 static int loop_cnt = 0;
 
 // state machine params
-static int accel_cnt_thresh, back_cnt_thresh, rest_cnt_thresh;
-static float wp_hit_radius, heading_hit_thresh, stop_sum_eof_thresh, turn_delta_mag_thresh;
-static float fwd_vel, back_vel;
-static float tmp_wp_dst;
+int accel_cnt_thresh, back_cnt_thresh, rest_cnt_thresh;
+float wp_hit_radius, head_align_angle, stop_sum_eof_thresh, turn_dif_mag_thresh;
+float fwd_vel, back_vel;
+float tmp_wp_dst;
 
 // low pass filter param
-static float flow_delta_mag_lpf_tau, flow_delta_eof_lpf_tau, flow_sum_eof_lpf_tau, loop_period;
+static float loop_period;
+float tau_dif_mag, tau_dif_eof, tau_sum_eof;
 
 // PD ctrl param
-static float pd_ctrl_p, pd_ctrl_d;
+float pd_p, pd_d;
 
 /**
  * implement functions
  */
-void ctrl_backend_init(
-    struct zone_t *zone,
-    float acc_thresh, float bac_thresh, float res_thresh,
-    float wp_hit_r, float heading_hit, float stop_seof_thresh, float trun_dmag_thresh,
-    float v_fwd, float v_back,
-    float lpf_t_dmag, float lpf_t_deof, float lpf_t_seof, float period,
-    float tmp_wp_dist,
-    float pd_p, float pd_d)
+void ctrl_backend_init(struct zone_t *zone)
 {
     memcpy(&geofence, zone, sizeof(*zone));
     last_tmp_wp[0].x = last_tmp_wp[0].y = 0;
     last_tmp_wp[1].x = last_tmp_wp[1].y = 0;
 
-    accel_cnt_thresh = acc_thresh;
-    back_cnt_thresh = bac_thresh;
-    rest_cnt_thresh = res_thresh;
-    wp_hit_radius = wp_hit_r;
-    heading_hit_thresh = heading_hit;
-    stop_sum_eof_thresh = stop_seof_thresh;
-    turn_delta_mag_thresh = trun_dmag_thresh;
-    fwd_vel = v_fwd;
-    back_vel = v_back;
-    flow_delta_mag_lpf_tau = lpf_t_dmag;
-    flow_delta_eof_lpf_tau = lpf_t_deof;
-    flow_sum_eof_lpf_tau = lpf_t_seof;
-    loop_period = period;
+    accel_cnt_thresh = MR_ACCEL_CNT_THRESH;
+    back_cnt_thresh = MR_BACK_CNT_THRESH;
+    rest_cnt_thresh = MR_REST_CNT_THRESH;
+    wp_hit_radius = MR_WP_HIT_RADIUS;
+    head_align_angle = MR_HEAD_ALIGN_ANGLE;
+    stop_sum_eof_thresh = MR_STOP_SUM_EOF_THRESH;
+    turn_dif_mag_thresh = MR_TURN_DIF_MAG_THRESH;
+    fwd_vel = MR_FWD_VEL;
+    back_vel = MR_BACK_VEL;
+    tau_dif_mag = MR_TAU_DIF_MAG;
+    tau_dif_eof = MR_TAU_DIF_EOF;
+    tau_sum_eof = MR_TAU_SUM_EOF;
+    loop_period = MR_LOOP_PERIOD;
 
-    tmp_wp_dst = tmp_wp_dist;
+    tmp_wp_dst = MR_TMP_WP_DST;
 
-    pd_ctrl_p = pd_p;
-    pd_ctrl_d = pd_d;
+    pd_p = MR_PD_P;
+    pd_d = MR_PD_D;
 }
 
-void ctrl_backend_run(
+bool ctrl_backend_run(
     struct cmd_t *cmd, struct dbg_msg_t *dbg,
     struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv,
     bool is_guided)
@@ -150,9 +144,9 @@ void ctrl_backend_run(
     tmp_heading_err.x = tmp_heading_err_new;
 
     // store cv info after lpf
-    low_pass_filter(&flow_delta_mag, cv->lmag - cv->rmag, loop_period / (flow_delta_mag_lpf_tau + loop_period));
-    low_pass_filter(&flow_delta_eof, cv->leof - cv->reof, loop_period / (flow_delta_eof_lpf_tau + loop_period));
-    low_pass_filter(&flow_sum_eof, cv->leof + cv->reof, loop_period / (flow_sum_eof_lpf_tau + loop_period));
+    low_pass_filter(&flow_dif_mag, cv->lmag - cv->rmag, loop_period / (tau_dif_mag + loop_period));
+    low_pass_filter(&flow_dif_eof, cv->leof - cv->reof, loop_period / (tau_dif_eof + loop_period));
+    low_pass_filter(&flow_sum_eof, cv->leof + cv->reof, loop_period / (tau_sum_eof + loop_period));
 
     // state machine
     switch (action)
@@ -166,15 +160,15 @@ void ctrl_backend_run(
         }
         break;
     case TURN_TO_GOAL:
-        set_cmd(cmd, 0, 0, pd_ctrl(&goal_heading_err, pd_ctrl_p, pd_ctrl_d));
-        if (fabs(goal_heading_err.x) < heading_hit_thresh)
+        set_cmd(cmd, 0, 0, pd_ctrl(&goal_heading_err, pd_p, pd_d));
+        if (fabs(goal_heading_err.x) < head_align_angle)
         {
             action = ACCEL_TO_GOAL;
             loop_cnt = 0;
         }
         break;
     case ACCEL_TO_GOAL:
-        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&goal_heading_err, pd_ctrl_p, pd_ctrl_d));
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&goal_heading_err, pd_p, pd_d));
         if (loop_cnt > accel_cnt_thresh)
         {
             action = GO_TO_GOAL;
@@ -186,7 +180,7 @@ void ctrl_backend_run(
         loop_cnt += 1;
         break;
     case GO_TO_GOAL:
-        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&goal_heading_err, pd_ctrl_p, pd_ctrl_d));
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&goal_heading_err, pd_p, pd_d));
         if (flow_sum_eof.x > stop_sum_eof_thresh)
         {
             update_tmp_wp(mav);
@@ -222,8 +216,8 @@ void ctrl_backend_run(
         loop_cnt += 1;
         break;
     case TURN_TO_TMP:
-        set_cmd(cmd, 0, 0, pd_ctrl(&tmp_heading_err, pd_ctrl_p, pd_ctrl_d));
-        if (fabs(tmp_heading_err.x) < heading_hit_thresh)
+        set_cmd(cmd, 0, 0, pd_ctrl(&tmp_heading_err, pd_p, pd_d));
+        if (fabs(tmp_heading_err.x) < head_align_angle)
         {
             action = ACCEL_TO_TMP;
             loop_cnt = 0;
@@ -234,7 +228,7 @@ void ctrl_backend_run(
         }
         break;
     case ACCEL_TO_TMP:
-        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&tmp_heading_err, pd_ctrl_p, pd_ctrl_d));
+        set_cmd(cmd, fwd_vel, 0, pd_ctrl(&tmp_heading_err, pd_p, pd_d));
         if (loop_cnt > accel_cnt_thresh)
         {
             action = GO_TO_TMP;
@@ -298,9 +292,11 @@ void ctrl_backend_run(
     dbg->dmag = cv->lmag - cv->rmag;
     dbg->deof = cv->leof - cv->reof;
     dbg->seof = cv->leof + cv->reof;
-    dbg->dmag_lpf = flow_delta_mag.x;
-    dbg->deof_lpf = flow_delta_eof.x;
+    dbg->dmag_lpf = flow_dif_mag.x;
+    dbg->deof_lpf = flow_dif_eof.x;
     dbg->seof_lpf = flow_sum_eof.x;
+    
+    return (action == STAND_BY);
 }
 
 float get_wp_heading_err(float err_x, float err_y, struct mav_state_t *mav)
@@ -402,9 +398,9 @@ void update_tmp_wp(struct mav_state_t *mav)
         }
         else
         {
-            if (fabs(flow_delta_mag.x) > turn_delta_mag_thresh)
+            if (fabs(flow_dif_mag.x) > turn_dif_mag_thresh)
             {
-                if (flow_delta_mag.x > 0)
+                if (flow_dif_mag.x > 0)
                 {
                     tmp_wp.x = right_wp.x;
                     tmp_wp.y = right_wp.y;
@@ -417,7 +413,7 @@ void update_tmp_wp(struct mav_state_t *mav)
             }
             else
             {
-                if (flow_delta_eof.x > 0)
+                if (flow_dif_eof.x > 0)
                 {
                     tmp_wp.x = right_wp.x;
                     tmp_wp.y = right_wp.y;

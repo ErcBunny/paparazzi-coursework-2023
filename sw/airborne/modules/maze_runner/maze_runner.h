@@ -98,6 +98,16 @@ struct zone_t
     struct EnuCoor_f corner[4];
 };
 
+// params that can be changed by dl setting
+extern int accel_cnt_thresh, back_cnt_thresh, rest_cnt_thresh;
+extern float wp_hit_radius, head_align_angle, stop_sum_eof_thresh, turn_dif_mag_thresh;
+extern float fwd_vel, back_vel;
+extern float tmp_wp_dst;
+extern float tau_dif_mag, tau_dif_eof, tau_sum_eof;
+extern float pd_p, pd_d;
+extern float auto_wp_zone_r, auto_wp_angle_inc;
+extern int auto_wp_timeout, auto_wp_wait_thresh;
+
 extern void maze_runner_init(void);
 extern void maze_runner_loop(void);
 
@@ -108,19 +118,13 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float right_flow_eof,
            int fps);
 
-void ctrl_backend_init(
-    struct zone_t *zone,
-    float acc_thresh, float bac_thresh, float res_thresh,
-    float wp_hit_r, float heading_hit, float stop_seof_thresh, float trun_dmag_thresh,
-    float v_fwd, float v_back,
-    float lpf_t_dmag, float lpf_t_deof, float lpf_t_seof, float period,
-    float tmp_wp_dist,
-    float pd_p, float pd_d);
-void ctrl_backend_run(
+void ctrl_backend_init(struct zone_t *zone);
+bool ctrl_backend_run(
     struct cmd_t *cmd, struct dbg_msg_t *dbg,
     struct EnuCoor_f *goal, struct mav_state_t *mav, struct cv_info_t *cv,
     bool is_guided);
 
 void toggle_auto_gen_wp(void);
+void stop_auto_gen_wp(void);
 
 #endif
