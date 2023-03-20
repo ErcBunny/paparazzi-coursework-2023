@@ -37,6 +37,7 @@
       <message name="INS_EKF2"                 period=".25"/>
       <message name="WIND_INFO_RET"            period="1."/>
       <message name="AHRS_REF_QUAT"            period="0.5"/>
+      <message name="MAZE_RUNNER"              period="0.05"/>
     </mode>
 
     <mode name="ppm">

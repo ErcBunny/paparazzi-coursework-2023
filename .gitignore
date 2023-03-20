@@ -197,3 +197,6 @@ tests/results/*
 
 # K-develop
 *.kate-swp
+
+# other
+/misc/mav_datasets

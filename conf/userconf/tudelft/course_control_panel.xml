@@ -5,13 +5,13 @@
       <arg flag="-d" constant="/dev/ttyUSB0"/>
     </program>
     <program name="GCS" command="sw/ground_segment/cockpit/gcs">
-        <arg flag="-speech"/>
-        <arg flag="-maximize"/>
-        <arg flag="-center_ac"/>
-        <arg flag="-mercator"/>
-        <arg flag="-maps_no_http"/>
-        <arg flag="-track_size" constant="200"/>
-        <arg flag="-zoom" constant="40."/>
+      <!-- <arg flag="-speech"/> -->
+      <arg flag="-maximize"/>
+      <arg flag="-center_ac"/>
+      <arg flag="-mercator"/>
+      <arg flag="-maps_no_http"/>
+      <arg flag="-track_size" constant="200"/>
+      <arg flag="-zoom" constant="40."/>
     </program>
     <program name="Messages" command="sw/ground_segment/tmtc/messages"/>
     <program name="Settings" command="sw/ground_segment/tmtc/settings">
@@ -31,7 +31,7 @@
     <program name="Real-time Distance Counter" command="sw/ground_segment/python/distance_counter/dist.py"/>
   </section>
   <section name="sessions">
-  <session name="Simulation - Gazebo">
+    <session name="Simulation - Gazebo">
       <program name="Simulator">
         <arg flag="-a" constant="@AIRCRAFT"/>
         <arg flag="-t" constant="nps"/>
@@ -44,7 +44,7 @@
         <arg flag="-n"/>
       </program>
       <program name="GCS">
-        <arg flag="-speech"/>
+        <!-- <arg flag="-speech"/> -->
         <arg flag="-maximize"/>
         <arg flag="-center_ac"/>
         <arg flag="-mercator"/>
@@ -53,6 +53,8 @@
         <arg flag="-zoom" constant="40."/>
       </program>
       <program name="Gazebo"/>
+      <program name="Messages"/>
+      <program name="Real-time Plotter"/>
     </session>
     <session name="Simulation - Gazebo + Joystick">
       <program name="Simulator">
@@ -67,7 +69,7 @@
         <arg flag="-n"/>
       </program>
       <program name="GCS">
-        <arg flag="-speech"/>
+        <!-- <arg flag="-speech"/> -->
         <arg flag="-maximize"/>
         <arg flag="-center_ac"/>
         <arg flag="-mercator"/>
@@ -88,7 +90,7 @@
       </program>
       <program name="Server"/>
       <program name="GCS">
-        <arg flag="-speech"/>
+        <!-- <arg flag="-speech"/> -->
       </program>
       <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
         <arg flag="-ac" constant="@AIRCRAFT"/>
@@ -102,6 +104,8 @@
         <arg flag="-an" constant="far"/>
         <arg flag="-le" constant="far"/>
       </program>
+      <program name="Messages"/>
+      <program name="Real-time Plotter"/>
     </session>
     <session name="Distance Counter">
       <program name="Real-time Distance Counter"/>
