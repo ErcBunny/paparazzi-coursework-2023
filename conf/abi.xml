@@ -251,6 +251,7 @@
       <field name="right_flow_mag" type="float"/>
       <field name="left_flow_eof" type="float"/>
       <field name="right_flow_eof" type="float"/>
+      <field name="grad_sum" type="int"/>
       <field name="fps" type="int"/>
     </message>
 

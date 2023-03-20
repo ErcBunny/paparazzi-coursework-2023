@@ -40,6 +40,7 @@ extern "C"
         float rmag;
         float leof;
         float reof;
+        int grad_sum;
     };
 
     void opencv_frontend_init(uint16_t src_h, uint16_t src_w, int of_method);
@@ -47,10 +48,6 @@ extern "C"
     void opencv_frontend_run(struct image_t *src_0, struct image_t *src_1);
 
     struct opencv_frontend_return_t opencv_frontend_return(void);
-
-#ifdef TARGET_IS_NPS
-    void opencv_frontend_cbimshow(struct image_t *src);
-#endif
 
 #ifdef __cplusplus
 }

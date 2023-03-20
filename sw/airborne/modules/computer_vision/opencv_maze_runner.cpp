@@ -58,17 +58,26 @@ struct optflow_t
     float reof;
 };
 
+struct gradient_t
+{
+    image_t src;
+    image_t gray;
+    image_t x;
+    image_t y;
+    int sum;
+};
 /**
  * declare helper functions, these are functions that help with header functions
  * but since they contain opencv elements, they are declared here
  */
 Mat rotate(Mat src);
-Mat preprocess(struct image_t *src);
+Mat optflow_preprocess(struct image_t *src);
 
 /**
  * global variables, only shared within this file
  */
 static struct optflow_t opt_flow;
+static struct gradient_t grad;
 
 /**
  * implement functions declared in the header, these can be called in other modules
@@ -113,12 +122,18 @@ void opencv_frontend_init(uint16_t src_h, uint16_t src_w, int of_method)
             opt_flow.dist_to_centre.at<float>(i, j) = sqrt(pow(i - i_mid, 2) + pow(j - j_mid, 2));
         }
     }
+
+    image_create(&grad.src, src_w / MR_GRADIENT_DOWNSCALE, src_h / MR_GRADIENT_DOWNSCALE, IMAGE_YUV422);
+    image_create(&grad.gray, src_w / MR_GRADIENT_DOWNSCALE, src_h / MR_GRADIENT_DOWNSCALE, IMAGE_GRAYSCALE);
+    image_create(&grad.x, src_w / MR_GRADIENT_DOWNSCALE, src_h / MR_GRADIENT_DOWNSCALE, IMAGE_GRADIENT);
+    image_create(&grad.y, src_w / MR_GRADIENT_DOWNSCALE, src_h / MR_GRADIENT_DOWNSCALE, IMAGE_GRADIENT);
+    grad.sum = 0;
 }
 
 void opencv_frontend_run(struct image_t *src_0, struct image_t *src_1)
 {
-    opt_flow.gray[0] = preprocess(src_0);
-    opt_flow.gray[1] = preprocess(src_1);
+    opt_flow.gray[0] = optflow_preprocess(src_0);
+    opt_flow.gray[1] = optflow_preprocess(src_1);
     opt_flow.algorithm->calc(
         opt_flow.gray[0],
         opt_flow.gray[1],
@@ -152,6 +167,21 @@ void opencv_frontend_run(struct image_t *src_0, struct image_t *src_1)
     opt_flow.rmag = rmag;
     opt_flow.reof = reof;
 
+    image_yuv422_downsample(src_1, &grad.src, MR_GRADIENT_DOWNSCALE);
+    image_to_grayscale(&grad.src, &grad.gray);
+    image_gradients(&grad.gray, &grad.x, &grad.y);
+    grad.sum = 0;
+    for (uint16_t x = 1; x < grad.x.w - 1; x++)
+    {
+        for (uint16_t y = 1; y < grad.x.h - 1; y++)
+        {
+            grad.sum += abs(
+                (int)(((int16_t *)grad.x.buf)[(y - 1) * grad.x.w + (x - 1)] +
+                      ((int16_t *)grad.y.buf)[(y - 1) * grad.y.w + (x - 1)]));
+        }
+    }
+    grad.sum = (int)((float)grad.sum / 1000);
+
 #ifdef TARGET_IS_NPS
     Mat src_gray, hsv_split[3], flow_hsv, flow_bgr;
 
@@ -179,19 +209,9 @@ struct opencv_frontend_return_t opencv_frontend_return(void)
     ret.rmag = opt_flow.rmag;
     ret.leof = opt_flow.leof;
     ret.reof = opt_flow.reof;
+    ret.grad_sum = grad.sum;
     return ret;
 }
-
-#ifdef TARGET_IS_NPS
-void opencv_frontend_cbimshow(struct image_t *src)
-{
-    Mat yuv = Mat(src->h, src->w, CV_8UC2, (char *)src->buf);
-    Mat bgr;
-    cvtColor(yuv, bgr, CV_YUV2BGR_Y422);
-    imshow("cb.bgr", rotate(bgr));
-    waitKey(1);
-}
-#endif
 
 /**
  * implement helper functions
@@ -206,7 +226,7 @@ Mat rotate(Mat src)
 }
 #endif
 
-Mat preprocess(struct image_t *src)
+Mat optflow_preprocess(struct image_t *src)
 {
     Mat src_gray;
     cvtColor(Mat(src->h, src->w, CV_8UC2, (char *)src->buf), src_gray, CV_YUV2GRAY_Y422);

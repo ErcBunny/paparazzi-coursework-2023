@@ -66,9 +66,6 @@ struct image_t *video_cb(struct image_t *img, uint8_t camera_id __attribute__((u
     pthread_mutex_unlock(&mutex);
     break;
   case CB_STATE_INITIALIZED:
-#ifdef TARGET_IS_NPS
-    opencv_frontend_cbimshow(img);
-#endif
     pthread_mutex_lock(&mutex);
     image_switch(&src[0], &src[1]);
     image_copy(img, &src[1]);
@@ -109,7 +106,7 @@ void cv_maze_runner_loop(void)
   elapsed_time = (end_time.tv_sec - start_time.tv_sec) * 1000000 +
                  (end_time.tv_usec - start_time.tv_usec);
 
-  AbiSendMsgCV_MAZE_RUNNER(0, ret.lmag, ret.rmag, ret.leof, ret.reof, (int)((float)1e6 / elapsed_time));
+  AbiSendMsgCV_MAZE_RUNNER(0, ret.lmag, ret.rmag, ret.leof, ret.reof, ret.grad_sum, (int)((float)1e6 / elapsed_time));
 
   return;
 }

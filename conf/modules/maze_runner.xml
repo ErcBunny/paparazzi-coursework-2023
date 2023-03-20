@@ -27,6 +27,7 @@
     <define name="MR_AUTO_WP_ANG_INC" description="Each time auto waypoints are on different heading angles, this value is the increment"/>
     <define name="MR_AUTO_WP_TIMEOUT" description="If the auto waypoint isn't hit for this value of loops, generate a new waypoint"/>
     <define name="MR_AUTO_WP_WAIT_THRESH" description="Wait some loops after hitting the waypoint and generating a new one"/>
+    <define name="MR_SUM_GRAD_THRESH" description="If sum of img grad is below the threshold, the MAV is probably blocked by sth."/>
   </doc>
 
   <settings>
@@ -34,6 +35,7 @@
       <dl_settings name="Maze Runner">
         <dl_setting var="stop_sum_eof_thresh" min="0" step="1" max="400" shortname="StopSEOF"/>
         <dl_setting var="turn_dif_mag_thresh" min="0" step="1" max="1500" shortname="TurnDMAG"/>
+        <dl_setting var="sum_grad_thresh" min="0" step="1" max="400" shortname="BlockGrad"/>
 
         <dl_setting var="accel_cnt_thresh" min="0" step="1" max="100" shortname="AccCnt"/>
         <dl_setting var="back_cnt_thresh" min="0" step="1" max="100" shortname="BackCnt"/>

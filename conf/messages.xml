@@ -1754,6 +1754,7 @@
       <field name="dmag" type="float"/>
       <field name="deof" type="float"/>
       <field name="seof" type="float"/>
+      <field name="grad" type="int16"/>
       <field name="dmag_lpf" type="float"/>
       <field name="deof_lpf" type="float"/>
       <field name="seof_lpf" type="float"/>

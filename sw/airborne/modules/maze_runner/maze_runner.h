@@ -51,6 +51,7 @@ struct cv_info_t
     float rmag;
     float leof;
     float reof;
+    int grad_sum;
     int fps;
 };
 
@@ -63,6 +64,7 @@ struct dbg_msg_t
     float deof_lpf;
     float seof_lpf;
     int16_t fps;
+    int16_t grad;
 };
 
 struct cmd_t
@@ -107,6 +109,7 @@ extern float tau_dif_mag, tau_dif_eof, tau_sum_eof;
 extern float pd_p, pd_d;
 extern float auto_wp_zone_r, auto_wp_angle_inc;
 extern int auto_wp_timeout, auto_wp_wait_thresh;
+extern int sum_grad_thresh;
 
 extern void maze_runner_init(void);
 extern void maze_runner_loop(void);
@@ -116,6 +119,7 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float right_flow_mag,
            float left_flow_eof,
            float right_flow_eof,
+           int grad_sum,
            int fps);
 
 void ctrl_backend_init(struct zone_t *zone);

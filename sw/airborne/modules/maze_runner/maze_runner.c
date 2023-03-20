@@ -71,6 +71,7 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
            float right_flow_mag,
            float left_flow_eof,
            float right_flow_eof,
+           int grad_sum,
            int fps)
 {
     pthread_mutex_lock(&mtx_cv_info);
@@ -78,6 +79,7 @@ void cv_cb(uint8_t __attribute__((unused)) sender_id,
     cv_info.rmag = right_flow_mag;
     cv_info.leof = left_flow_eof;
     cv_info.reof = right_flow_eof;
+    cv_info.grad_sum = grad_sum;
     cv_info.fps = fps;
     pthread_mutex_unlock(&mtx_cv_info);
 }
@@ -90,7 +92,7 @@ void telem_cb(struct transport_tx *trans, struct link_device *dev)
     pprz_msg_send_MAZE_RUNNER(
         trans, dev, AC_ID,
         &dbg_msg_cpy.fps,
-        &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof, &dbg_msg_cpy.seof,
+        &dbg_msg_cpy.dmag, &dbg_msg_cpy.deof, &dbg_msg_cpy.seof, &dbg_msg_cpy.grad,
         &dbg_msg_cpy.dmag_lpf, &dbg_msg_cpy.deof_lpf, &dbg_msg_cpy.seof_lpf);
 }
 
@@ -162,13 +164,13 @@ void maze_runner_loop(void)
         {
             if (is_auto_wp_cnt_even)
             {
-                new_wp.x = auto_wp_zone_r * cos(auto_wp_angle);
-                new_wp.y = auto_wp_zone_r * sin(auto_wp_angle);
+                new_wp.x = auto_wp_zone_r * sin(auto_wp_angle);
+                new_wp.y = auto_wp_zone_r * cos(auto_wp_angle);
             }
             else
             {
-                new_wp.x = auto_wp_zone_r * cos(auto_wp_angle + M_PI);
-                new_wp.y = auto_wp_zone_r * sin(auto_wp_angle + M_PI);
+                new_wp.x = auto_wp_zone_r * sin(auto_wp_angle + M_PI);
+                new_wp.y = auto_wp_zone_r * cos(auto_wp_angle + M_PI);
                 auto_wp_angle += auto_wp_angle_inc;
                 if (auto_wp_angle > 2 * M_PI)
                 {

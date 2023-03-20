@@ -86,6 +86,8 @@ float tau_dif_mag, tau_dif_eof, tau_sum_eof;
 // PD ctrl param
 float pd_p, pd_d;
 
+int sum_grad_thresh;
+
 /**
  * implement functions
  */
@@ -113,6 +115,8 @@ void ctrl_backend_init(struct zone_t *zone)
 
     pd_p = MR_PD_P;
     pd_d = MR_PD_D;
+
+    sum_grad_thresh = MR_SUM_GRAD_THRESH;
 }
 
 bool ctrl_backend_run(
@@ -164,8 +168,19 @@ bool ctrl_backend_run(
         set_cmd(cmd, 0, 0, pd_ctrl(&goal_heading_err, pd_p, pd_d));
         if (fabs(goal_heading_err.x) < head_align_angle)
         {
-            action = ACCEL_TO_GOAL;
-            loop_cnt = 0;
+            if (cv->grad_sum < sum_grad_thresh)
+            {
+                VERBOSE_PRINT("TURN_TO_GOAL-->BACK_UP: grad_sum(%d)<sum_grad_thresh(%d)\n", cv->grad_sum, sum_grad_thresh);
+                update_tmp_wp(mav);
+                action = BACK_UP;
+                loop_cnt = 0;
+            }
+            else
+            {
+                VERBOSE_PRINT("TURN_TO_GOAL-->ACCEL_TO_GOAL: grad_sum(%d)>=sum_grad_thresh(%d)\n", cv->grad_sum, sum_grad_thresh);
+                action = ACCEL_TO_GOAL;
+                loop_cnt = 0;
+            }
         }
         break;
     case ACCEL_TO_GOAL:
@@ -184,6 +199,7 @@ bool ctrl_backend_run(
         set_cmd(cmd, fwd_vel, 0, pd_ctrl(&goal_heading_err, pd_p, pd_d));
         if (flow_sum_eof.x > stop_sum_eof_thresh)
         {
+            VERBOSE_PRINT("GO_TO_GOAL-->BACK_UP: flow_sum_eof(%f)>stop_sum_eof_thresh(%f)\n", flow_sum_eof.x, stop_sum_eof_thresh);
             update_tmp_wp(mav);
             action = BACK_UP;
             loop_cnt = 0;
@@ -204,7 +220,7 @@ bool ctrl_backend_run(
         {
             set_cmd(cmd, back_vel, 0, 0);
         }
-        else if (loop_cnt >= back_cnt_thresh && loop_cnt < back_cnt_thresh + accel_cnt_thresh)
+        else if (loop_cnt >= back_cnt_thresh && loop_cnt < back_cnt_thresh + back_cnt_thresh)
         {
             set_cmd(cmd, 0, 0, 0);
         }
@@ -222,8 +238,19 @@ bool ctrl_backend_run(
         set_cmd(cmd, 0, 0, pd_ctrl(&tmp_heading_err, pd_p, pd_d));
         if (fabs(tmp_heading_err.x) < head_align_angle)
         {
-            action = ACCEL_TO_TMP;
-            loop_cnt = 0;
+            if (cv->grad_sum < sum_grad_thresh)
+            {
+                VERBOSE_PRINT("TURN_TO_TMP-->BACK_UP: grad_sum(%d)<sum_grad_thresh(%d)\n", cv->grad_sum, sum_grad_thresh);
+                update_tmp_wp(mav);
+                action = BACK_UP;
+                loop_cnt = 0;
+            }
+            else
+            {
+                VERBOSE_PRINT("TURN_TO_TMP-->ACCEL_TO_TMP: grad_sum(%d)>=sum_grad_thresh(%d)\n", cv->grad_sum, sum_grad_thresh);
+                action = ACCEL_TO_TMP;
+                loop_cnt = 0;
+            }
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
         {
@@ -246,6 +273,7 @@ bool ctrl_backend_run(
         set_cmd(cmd, fwd_vel, 0, 0);
         if (flow_sum_eof.x > stop_sum_eof_thresh)
         {
+            VERBOSE_PRINT("GO_TO_TMP-->BACK_UP: flow_sum_eof(%f)>stop_sum_eof_thresh(%f)\n", flow_sum_eof.x, stop_sum_eof_thresh);
             update_tmp_wp(mav);
             action = BACK_UP;
             loop_cnt = 0;
@@ -303,10 +331,11 @@ bool ctrl_backend_run(
     dbg->dmag = cv->lmag - cv->rmag;
     dbg->deof = cv->leof - cv->reof;
     dbg->seof = cv->leof + cv->reof;
+    dbg->grad = cv->grad_sum;
     dbg->dmag_lpf = flow_dif_mag.x;
     dbg->deof_lpf = flow_dif_eof.x;
     dbg->seof_lpf = flow_sum_eof.x;
-    
+
     return (action == STAND_BY);
 }
 

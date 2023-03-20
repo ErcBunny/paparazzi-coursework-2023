@@ -18,7 +18,7 @@ Pros:
 
 Cons:
 * the thresholds maybe hard to tune
-* cannot detect obstacles that are really close and not moving
+* cannot detect obstacles that are really close and not moving (though added img gradient based detection)
 * can crash into obstacles in the break and go back phase
 * not robust to collisions, will lose control if the obtacle blocks the turning phase
 
