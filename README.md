@@ -1,6 +1,6 @@
 # MAIN README - Hacked By Group 12 in Q3 2023
 
-Authors:
+**Authors**:
 * [Andriuškevičius, Justas](https://github.com/justas145)
 * Fuser, Michaël
 * [Liu, Yueqian](https://github.com/ErcBunny)
@@ -10,17 +10,50 @@ Authors:
 
 Our airframe is `bebop_maze_runner`, feel free to play around. This `README` is WIP and will get updates about usage and implementation.
 
-Our strategy is purely based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold.
+Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold. In addition, we add a image gradient check at the start to find the very close object ahead.
 
-Pros:
+**Pros**:
 * can detect obstacles regardless of their colors
 * can avoid thin panels even if the MAV is approaching the panel from the side
 
-Cons:
+**Cons**:
 * the thresholds maybe hard to tune
 * cannot detect obstacles that are really close and not moving (though added img gradient based detection)
 * can crash into obstacles in the break and go back phase
 * not robust to collisions, will lose control if the obtacle blocks the turning phase
+
+**Changed files**:
+* `sw/airborne/modules/maze_runner/`: *main logic code*
+  1. waypoint generation
+  2. strategy for going the waypoint while avoiding obstacles
+  3. receive vision frontend ABI topic and publish debug message
+* `sw/airborne/modules/computer_vision/cv_maze_runner.c`: *main vision module*
+  1. call opencv functions (written in another cpp file)
+  2. handle frame queue and publish ABI topic
+  3. take care of multithreading
+* `sw/airborne/modules/computer_vision/opencv_maze_runner.cpp`: *image processing*
+  1. DIS dense optical flow
+  2. gradient calculation
+* `conf/modules`: *conf files for the modules*
+  1. lib links
+  2. param description
+  3. dlsettings for tuning params in flight
+* `conf/airframes/tudelft/bebop_course_maze_runner.xml`: *an independent airframe file*
+  1. parameter presets
+  2. specify which modules to run
+* `conf/flight_plans/tudelft/course_maze_runner_cyberzoo.xml`: *dedicated flight plan*
+  1. set functions for the GCS buttons
+  2. add a new interactive waypoint GUIDED_GOAL
+* `conf/messages.xml`: *for telem msg logging, follow the crashcourse doc*
+* `conf/telemetry/default_rotorcraft.xml`: *register telem msg sending frequency*
+* `conf/userconf/tudelft/course_conf.xml`: *this file tells the paparazzi centre and GCS about the airframes and what code to compile*
+* ` conf/userconf/tudelft/course_control_panel.xml`: *comment out the annoying speech dispatcher*
+* `misc/`
+  1. legacy code, python notebooks
+  2. useful info for setting up the environment in `misc.ipynb` (opencv, gtk imshow, apple silicon)
+  3. convenient scripts for opening vlc and telnet
+
+> See the pull requests for more info
 
 Paparazzi UAS
 =============
