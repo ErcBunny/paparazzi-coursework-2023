@@ -219,5 +219,9 @@ void toggle_auto_gen_wp()
 void stop_auto_gen_wp()
 {
     is_auto_wp = false;
+    is_first_auto_wp = true;
+    auto_wp_wait_cnt = 0;
+    auto_wp_cnt = 0;
+    is_auto_wp_cnt_even = true;
     VERBOSE_PRINT("stop auto waypoints\n");
 }

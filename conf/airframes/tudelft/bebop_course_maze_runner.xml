@@ -12,9 +12,9 @@
       <define name="TARGET_IS_AP"/>
 
       <define name="MR_ACCEL_CNT_THRESH" value="50"/>
-      <define name="MR_BACK_CNT_THRESH" value="30"/>
-      <define name="MR_REST_CNT_THRESH" value="25"/>
-      <define name="MR_WP_HIT_RADIUS" value="0.5"/>
+      <define name="MR_BACK_CNT_THRESH" value="25"/>
+      <define name="MR_REST_CNT_THRESH" value="15"/>
+      <define name="MR_WP_HIT_RADIUS" value="0.25"/>
       <define name="MR_HEAD_ALIGN_ANGLE" value="0.1"/>
       <define name="MR_STOP_SUM_EOF_THRESH" value="225"/>
       <define name="MR_TURN_DIF_MAG_THRESH" value="900"/>
@@ -39,9 +39,9 @@
       <define name="TARGET_IS_NPS"/>
 
       <define name="MR_ACCEL_CNT_THRESH" value="50"/>
-      <define name="MR_BACK_CNT_THRESH" value="30"/>
-      <define name="MR_REST_CNT_THRESH" value="25"/>
-      <define name="MR_WP_HIT_RADIUS" value="0.5"/>
+      <define name="MR_BACK_CNT_THRESH" value="25"/>
+      <define name="MR_REST_CNT_THRESH" value="15"/>
+      <define name="MR_WP_HIT_RADIUS" value="0.25"/>
       <define name="MR_HEAD_ALIGN_ANGLE" value="0.1"/>
       <define name="MR_STOP_SUM_EOF_THRESH" value="225"/>
       <define name="MR_TURN_DIF_MAG_THRESH" value="900"/>

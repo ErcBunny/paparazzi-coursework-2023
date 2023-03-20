@@ -70,6 +70,7 @@ static struct EnuCoor_f last_goal = {0, 0, 0}, tmp_wp = {0, 0, 0}, last_tmp_wp[2
 
 // state machine variables
 static int action = STAND_BY;
+static bool is_stop_at_goal;
 static int loop_cnt = 0;
 
 // state machine params
@@ -189,7 +190,9 @@ bool ctrl_backend_run(
         }
         if (goal_dst_err.x <= wp_hit_radius)
         {
-            action = STAND_BY;
+            action = LITTLE_STOP;
+            loop_cnt = 0;
+            is_stop_at_goal = true;
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
         {
@@ -251,6 +254,7 @@ bool ctrl_backend_run(
         {
             action = LITTLE_STOP;
             loop_cnt = 0;
+            is_stop_at_goal = false;
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
         {
@@ -258,17 +262,24 @@ bool ctrl_backend_run(
         }
         break;
     case LITTLE_STOP:
-        if (loop_cnt < accel_cnt_thresh)
+        if (loop_cnt < rest_cnt_thresh)
         {
             set_cmd(cmd, -fwd_vel, 0, 0);
         }
-        else if (loop_cnt >= accel_cnt_thresh && loop_cnt < 2 * accel_cnt_thresh)
+        else if (loop_cnt >= rest_cnt_thresh && loop_cnt < 3 * rest_cnt_thresh)
         {
             set_cmd(cmd, 0, 0, 0);
         }
-        if (loop_cnt > rest_cnt_thresh)
+        else
         {
-            action = TURN_TO_GOAL;
+            if (is_stop_at_goal)
+            {
+                action = STAND_BY;
+            }
+            else
+            {
+                action = TURN_TO_GOAL;
+            }
         }
         if (goal->x != last_goal.x || goal->y != last_goal.y)
         {

@@ -10,6 +10,18 @@ Authors:
 
 Our airframe is `bebop_maze_runner`, feel free to play around. This `README` is WIP and will get updates about usage and implementation.
 
+Our strategy is purely based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold.
+
+Pros:
+* can detect obstacles regardless of their colors
+* can avoid thin panels even if the MAV is approaching the panel from the side
+
+Cons:
+* the thresholds maybe hard to tune
+* cannot detect obstacles that are really close and not moving
+* can crash into obstacles in the break and go back phase
+* not robust to collisions, will lose control if the obtacle blocks the turning phase
+
 Paparazzi UAS
 =============
 [![Build Status](https://semaphoreci.com/api/v1/paparazziuav/paparazzi/branches/master/shields_badge.svg)](https://semaphoreci.com/paparazziuav/paparazzi) [![Gitter chat](https://badges.gitter.im/paparazzi/discuss.svg)](https://gitter.im/paparazzi/discuss)
