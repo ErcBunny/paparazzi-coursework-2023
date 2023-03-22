@@ -43,8 +43,8 @@
 #define CB_STATE_INITIALIZED 2
 
 extern void cv_maze_runner_init(void);
-extern void cv_maze_runner_loop(void);
 
 struct image_t *video_cb(struct image_t *img, uint8_t camera_id);
+void *frontend_thread(void *args);
 
 #endif

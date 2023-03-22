@@ -21,7 +21,8 @@
 
   <init fun="cv_maze_runner_init()"/>
 
-  <periodic fun="cv_maze_runner_loop()" freq="20" autorun="TRUE"/>
+  <!-- <periodic fun="cv_maze_runner_loop()" freq="20" autorun="TRUE"/> -->
+  <!-- NEVER RUN VISION CODE AS THE "PERIODIC" -->
 
   <makefile target="ap">
     <file name="cv_maze_runner.c"/>

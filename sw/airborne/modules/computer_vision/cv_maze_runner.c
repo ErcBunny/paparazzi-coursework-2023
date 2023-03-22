@@ -35,6 +35,7 @@
 static pthread_mutex_t mutex;
 static struct image_t src[2], src_cpy[2];
 static uint8_t cb_state = CB_STATE_FIRST_RUN;
+static pthread_t frontend_thread_id;
 
 void cv_maze_runner_init(void)
 {
@@ -51,20 +52,17 @@ struct image_t *video_cb(struct image_t *img, uint8_t camera_id __attribute__((u
     image_create(&src[1], img->w, img->h, img->type);
     image_create(&src_cpy[0], img->w, img->h, img->type);
     image_create(&src_cpy[1], img->w, img->h, img->type);
-
     image_copy(img, &src[0]);
     opencv_frontend_init(img->h, img->w, MR_OPTFLOW_ALGO);
-
-    pthread_mutex_lock(&mutex);
     cb_state = CB_STATE_SECOND_RUN;
-    pthread_mutex_unlock(&mutex);
     break;
+
   case CB_STATE_SECOND_RUN:
     image_copy(img, &src[1]);
-    pthread_mutex_lock(&mutex);
+    pthread_create(&frontend_thread_id, NULL, frontend_thread, NULL);
     cb_state = CB_STATE_INITIALIZED;
-    pthread_mutex_unlock(&mutex);
     break;
+
   case CB_STATE_INITIALIZED:
     pthread_mutex_lock(&mutex);
     image_switch(&src[0], &src[1]);
@@ -75,38 +73,28 @@ struct image_t *video_cb(struct image_t *img, uint8_t camera_id __attribute__((u
   return NULL;
 }
 
-void cv_maze_runner_loop(void)
+void *frontend_thread(void *args __attribute__((unused)))
 {
-  // start time
-  struct timeval start_time, end_time;
-  long elapsed_time;
-  gettimeofday(&start_time, NULL);
-
-  // copy shared resources for further processing
-  bool is_cb_ready = false;
-  pthread_mutex_lock(&mutex);
-  if (cb_state == CB_STATE_INITIALIZED)
+  struct timeval tic, toc;
+  long t = 0;
+  gettimeofday(&tic, NULL);
+  while (true)
   {
-    is_cb_ready = true;
+    gettimeofday(&toc, NULL);
+    t = (toc.tv_sec - tic.tv_sec) * 1000000 + (toc.tv_usec - tic.tv_usec);
+    tic = toc;
+
+    // copy shared resources for further processing
+    pthread_mutex_lock(&mutex);
+    image_copy(&src[0], &src_cpy[0]);
+    image_copy(&src[1], &src_cpy[1]);
+    pthread_mutex_unlock(&mutex);
+
+    opencv_frontend_run(&src_cpy[0], &src_cpy[1]);
+    struct opencv_frontend_return_t ret = opencv_frontend_return();
+
+    AbiSendMsgCV_MAZE_RUNNER(0, ret.lmag, ret.rmag, ret.leof, ret.reof, ret.grad_sum, (int)((float)1e6 / t));
   }
-  image_copy(&src[0], &src_cpy[0]);
-  image_copy(&src[1], &src_cpy[1]);
-  pthread_mutex_unlock(&mutex);
 
-  if (!is_cb_ready)
-  {
-    return;
-  }
-
-  opencv_frontend_run(&src_cpy[0], &src_cpy[1]);
-  struct opencv_frontend_return_t ret = opencv_frontend_return();
-
-  // end time
-  gettimeofday(&end_time, NULL);
-  elapsed_time = (end_time.tv_sec - start_time.tv_sec) * 1000000 +
-                 (end_time.tv_usec - start_time.tv_usec);
-
-  AbiSendMsgCV_MAZE_RUNNER(0, ret.lmag, ret.rmag, ret.leof, ret.reof, ret.grad_sum, (int)((float)1e6 / elapsed_time));
-
-  return;
+  pthread_exit(NULL);
 }

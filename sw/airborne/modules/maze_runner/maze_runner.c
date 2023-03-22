@@ -119,6 +119,7 @@ void maze_runner_init(void)
     auto_wp_zone_r = fmin(
         0.5 * sqrt(pow(zone.corner[0].x - zone.corner[1].x, 2) + pow(zone.corner[0].y - zone.corner[1].y, 2)),
         0.5 * sqrt(pow(zone.corner[1].x - zone.corner[2].x, 2) + pow(zone.corner[1].y - zone.corner[2].y, 2)));
+    auto_wp_zone_r -= 0.5;
     auto_wp_angle_inc = MR_AUTO_WP_ANG_INC;
     auto_wp_timeout = MR_AUTO_WP_TIMEOUT;
     auto_wp_wait_thresh = MR_AUTO_WP_WAIT_THRESH;
@@ -223,6 +224,7 @@ void stop_auto_gen_wp()
     is_auto_wp = false;
     is_first_auto_wp = true;
     auto_wp_wait_cnt = 0;
+    auto_wp_angle = 0;
     auto_wp_cnt = 0;
     is_auto_wp_cnt_even = true;
     VERBOSE_PRINT("stop auto waypoints\n");
