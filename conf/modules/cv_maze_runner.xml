@@ -12,6 +12,7 @@
     <define name="MR_OPTFLOW_ROI_HORI" description="Optical flow horizontal ROI percentage"/>
     <define name="MR_OPTFLOW_ROI_VERT" description="Optical flow vertical ROI percentage"/>
     <define name="MR_GRADIENT_DOWNSCALE" description="Downscale factor (>1) for calculating image gradient"/>
+    <define name="MR_THREAD_IS_ASYNC" description="Threading architecture, if TRUE, use asynchronous image processing"/>
     <!-- above params should not be changed during flight -->
   </doc>
   
@@ -21,7 +22,8 @@
 
   <init fun="cv_maze_runner_init()"/>
 
-  <periodic fun="cv_maze_runner_loop()" freq="20" autorun="TRUE"/>
+  <!-- <periodic fun="cv_maze_runner_loop()" freq="20" autorun="TRUE"/> -->
+  <!-- NEVER RUN VISION CODE AS THE "PERIODIC" -->
 
   <makefile target="ap">
     <file name="cv_maze_runner.c"/>

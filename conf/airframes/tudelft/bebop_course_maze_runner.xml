@@ -11,25 +11,25 @@
       <define name="MT9V117_TARGET_FPS" value="20"/>
       <define name="TARGET_IS_AP"/>
 
-      <define name="MR_ACCEL_CNT_THRESH" value="35"/>
-      <define name="MR_BACK_CNT_THRESH" value="25"/>
-      <define name="MR_REST_CNT_THRESH" value="15"/>
+      <define name="MR_ACCEL_CNT_THRESH" value="100"/>
+      <define name="MR_BACK_CNT_THRESH" value="50"/>
+      <define name="MR_REST_CNT_THRESH" value="100"/>
       <define name="MR_WP_HIT_RADIUS" value="0.25"/>
       <define name="MR_HEAD_ALIGN_ANGLE" value="0.1"/>
-      <define name="MR_STOP_SUM_EOF_THRESH" value="225"/>
+      <define name="MR_STOP_SUM_EOF_THRESH" value="800"/>
       <define name="MR_TURN_DIF_MAG_THRESH" value="900"/>
       <define name="MR_FWD_VEL" value="0.4"/>
-      <define name="MR_BACK_VEL" value="-1.0"/>
+      <define name="MR_BACK_VEL" value="-0.5"/>
       <define name="MR_TAU_DIF_MAG" value="1.0"/>
       <define name="MR_TAU_DIF_EOF" value="1.0"/>
       <define name="MR_TAU_SUM_EOF" value="0.0"/>
       <define name="MR_LOOP_PERIOD" value="0.02"/>
       <define name="MR_TMP_WP_DST" value="1.0"/>
       <define name="MR_PD_P" value="1.0"/>
-      <define name="MR_PD_D" value="0.02"/>
+      <define name="MR_PD_D" value="0.01"/>
       <define name="MR_AUTO_WP_ANG_INC" value="1"/>
       <define name="MR_AUTO_WP_TIMEOUT" value="2500"/>
-      <define name="MR_AUTO_WP_WAIT_THRESH" value="35"/>
+      <define name="MR_AUTO_WP_WAIT_THRESH" value="100"/>
       <define name="MR_SUM_GRAD_THRESH" value="225"/>
     </target>
 
@@ -54,7 +54,7 @@
       <define name="MR_LOOP_PERIOD" value="0.02"/>
       <define name="MR_TMP_WP_DST" value="1.0"/>
       <define name="MR_PD_P" value="1.0"/>
-      <define name="MR_PD_D" value="0.02"/>
+      <define name="MR_PD_D" value="0.01"/>
       <define name="MR_AUTO_WP_ANG_INC" value="1"/>
       <define name="MR_AUTO_WP_TIMEOUT" value="2500"/>
       <define name="MR_AUTO_WP_WAIT_THRESH" value="35"/>
@@ -98,6 +98,7 @@
       <define name="MR_OPTFLOW_ROI_HORI" value="1.0"/>
       <define name="MR_OPTFLOW_ROI_VERT" value="0.45"/>
       <define name="MR_GRADIENT_DOWNSCALE" value="2"/>
+      <define name="MR_THREAD_IS_ASYNC" value="FALSE"/>
     </module>
     <module name="video_rtp_stream">
       <define name="VIEWVIDEO_CAMERA" value="front_camera"/>

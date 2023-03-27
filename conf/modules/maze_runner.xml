@@ -33,13 +33,13 @@
   <settings>
     <dl_settings>
       <dl_settings name="Maze Runner">
-        <dl_setting var="stop_sum_eof_thresh" min="0" step="1" max="400" shortname="StopSEOF"/>
-        <dl_setting var="turn_dif_mag_thresh" min="0" step="1" max="1500" shortname="TurnDMAG"/>
-        <dl_setting var="sum_grad_thresh" min="0" step="1" max="400" shortname="BlockGrad"/>
+        <dl_setting var="stop_sum_eof_thresh" min="0" step="1" max="1500" shortname="StopSEOF"/>
+        <dl_setting var="turn_dif_mag_thresh" min="0" step="1" max="3000" shortname="TurnDMAG"/>
+        <dl_setting var="sum_grad_thresh" min="0" step="1" max="1000" shortname="BlockGrad"/>
 
-        <dl_setting var="accel_cnt_thresh" min="0" step="1" max="100" shortname="AccCnt"/>
-        <dl_setting var="back_cnt_thresh" min="0" step="1" max="100" shortname="BackCnt"/>
-        <dl_setting var="rest_cnt_thresh" min="0" step="1" max="100" shortname="RestCnt"/>
+        <dl_setting var="accel_cnt_thresh" min="0" step="1" max="500" shortname="AccCnt"/>
+        <dl_setting var="back_cnt_thresh" min="0" step="1" max="500" shortname="BackCnt"/>
+        <dl_setting var="rest_cnt_thresh" min="0" step="1" max="500" shortname="RestCnt"/>
 
         <dl_setting var="tmp_wp_dst" min="0" step="0.05" max="2" shortname="TmpWpDst"/>
         <dl_setting var="wp_hit_radius" min="0" step="0.05" max="1" shortname="WpHitDst"/>
