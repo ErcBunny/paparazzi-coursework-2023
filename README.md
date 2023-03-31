@@ -2,27 +2,34 @@
 
 **Authors**:
 * [Andriuškevičius, Justas](https://github.com/justas145)
-* Fuser, Michaël
+* [Fuser, Michaël](https://github.com/PzZfhr)
 * [Liu, Yueqian](https://github.com/ErcBunny)
-* Long, Youyuan
+* [Long, Youyuan](https://github.com/LONG-yy98)
 * [Monarcha, Enzo](https://github.com/enzomonarcha)
 * [Ou, Dequan](https://github.com/dfordequan)
 
-Our airframe is `bebop_maze_runner`, feel free to play around. This `README` is WIP and will get updates about usage and implementation.
+Our airframe is `bebop_maze_runner`, feel free to play around. Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold. In addition, we add a image gradient check at the start to find the very close object ahead.
 
-Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold. In addition, we add a image gradient check at the start to find the very close object ahead.
+**Usage:**
+1. clone this repo recursively
+2. build opencv under `sw/ext/opencv_bebop/` with `-DWITH_GTK=ON` and `-DWITH_CAROTENE=OFF`
+3. if you are on Apple Silicon, change every instance of `x86_64` to `aarch64` in `conf/modules/cv_maze_runner.xml`
+4. make under the root directory, outside any conda env, run `start.py` and select the right config files (see the crashcourse doc)
+5. in `./paparazzi` you can build for different airframes, targets and run sim or setup flight udp, we have a good video to demonstrate how to interact with the drone. click the image to play the video [![Watch the video](./misc/readme_snapshot.png)](https://drive.google.com/file/d/1-80IuOYnAi_mwAYwgnq9DLzhlsFC25mE/view?usp=sharing)
+6. `misc/telnet_bebop_console.sh` opens the telnet console after you've setup flight udp, and `misc/vlc_bebop_frontcam.sh` opens the rtp and rotates the video
 
 **Pros**:
 * can detect obstacles regardless of their colors
 * can avoid thin panels even if the MAV is approaching the panel from the side
+* detect obstacles that are really close and not moving using image gradient
 
 **Cons**:
 * the thresholds maybe hard to tune
-* cannot detect obstacles that are really close and not moving (though added img gradient based detection)
 * can crash into obstacles in the break and go back phase
 * not robust to collisions, will lose control if the obtacle blocks the turning phase
 
 **Changed files**:
+> See the pull requests for more info
 * `sw/airborne/modules/maze_runner/`: *main logic code*
   1. waypoint generation
   2. strategy for going the waypoint while avoiding obstacles
@@ -49,11 +56,9 @@ Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1
 * `conf/userconf/tudelft/course_conf.xml`: *this file tells the paparazzi centre and GCS about the airframes and what code to compile*
 * ` conf/userconf/tudelft/course_control_panel.xml`: *comment out the annoying speech dispatcher*
 * `misc/`
-  1. legacy code, python notebooks
+  1. legacy code, python notebooks (image processing, SVM)
   2. useful info for setting up the environment in `misc.ipynb` (opencv, gtk imshow, apple silicon)
   3. convenient scripts for opening vlc and telnet
-
-> See the pull requests for more info
 
 Paparazzi UAS
 =============
