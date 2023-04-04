@@ -8,7 +8,7 @@
 * [Monarcha, Enzo](https://github.com/enzomonarcha)
 * [Ou, Dequan](https://github.com/dfordequan)
 
-Our airframe is `bebop_maze_runner`, feel free to play around. Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold. In addition, we add a image gradient check at the start to find the very close object ahead.
+Our airframe is `bebop_maze_runner`, feel free to play around. Our strategy is mainly based on [DIS dense optical flow](https://arxiv.org/abs/1603.03590): the MAV stops and turn if the expansion of flow (EOF) is over a threshold. In addition, we add a image gradient check at the start to find the very close object ahead. Here is the complete [report](https://www.overleaf.com/read/dqyphfwpxmtv), have fun~
 
 **Usage:**
 1. clone this repo recursively
