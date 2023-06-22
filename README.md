@@ -15,7 +15,7 @@ Our airframe is `bebop_maze_runner`, feel free to play around. Our strategy is m
 2. build opencv under `sw/ext/opencv_bebop/` with `-DWITH_GTK=ON` and `-DWITH_CAROTENE=OFF`
 3. if you are on Apple Silicon, change every instance of `x86_64` to `aarch64` in `conf/modules/cv_maze_runner.xml`
 4. make under the root directory, outside any conda env, run `start.py` and select the right config files (see the crashcourse doc)
-5. in `./paparazzi` you can build for different airframes, targets and run sim or setup flight udp, we have a good video to demonstrate how to interact with the drone. click the image to play the video[![Watch the video](./misc/readme_snapshot.png)](https://drive.google.com/file/d/1-80IuOYnAi_mwAYwgnq9DLzhlsFC25mE/view?usp=sharing)**!!Mistake in the video: the paper uses Horn-Schunck not Farneback!!**
+5. in `./paparazzi` you can build for different airframes, targets and run sim or setup flight udp, we have a good video to demonstrate how to interact with the drone. click the image to play the video[![Watch the video](./misc/readme_snapshot.png)](https://www.youtube.com/watch?v=altOnX0VRcQ)**!!Mistake in the video: the paper uses Horn-Schunck not Farneback!!**
 6. `misc/telnet_bebop_console.sh` opens the telnet console after you've setup flight udp, and `misc/vlc_bebop_frontcam.sh` opens the rtp and rotates the video
 
 **Pros**:
